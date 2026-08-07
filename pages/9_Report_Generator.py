@@ -1,0 +1,257 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import io
+import base64
+
+# ==========================================
+# 0. Page Configuration
+# ==========================================
+st.set_page_config(
+    page_title="Executive Report Generator",
+    page_icon="📄",
+    layout="wide"
+)
+
+st.title("📄 Executive Report Generator & Export Studio")
+st.write("Synthesize dataset metrics, cleaning logs, and statistical insights into a comprehensive HTML report.")
+
+# ==========================================
+# 1. Check Dataset Availability
+# ==========================================
+if "df" not in st.session_state or st.session_state["df"] is None:
+    st.warning("📂 Please upload a dataset first from the Upload page.")
+    st.stop()
+
+df = st.session_state["df"].copy()
+file_name = st.session_state.get("file_name", "Dataset")
+cleaning_log = st.session_state.get("cleaning_log", [])
+
+# ==========================================
+# 📊 Section 1: Executive Overview Summary
+# ==========================================
+st.subheader("📌 Executive Dataset Overview")
+
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("Total Rows", f"{len(df):,}")
+col2.metric("Total Columns", f"{df.shape[1]}")
+col3.metric("Missing Values", f"{df.isnull().sum().sum():,}")
+col4.metric("Memory Usage", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+
+st.divider()
+
+# ==========================================
+# ⚙️ Section 2: Report Customization
+# ==========================================
+st.subheader("⚙️ Configure Executive Report Sections")
+
+col_cfg1, col_cfg2 = st.columns(2)
+
+with col_cfg1:
+    report_title = st.text_input("Report Title", value=f"Data Insight Analysis Report - {file_name}")
+    author_name = st.text_input("Prepared By", value="AI Data Analyst Studio")
+    include_summary = st.checkbox("Include Summary Statistics Table", value=True)
+
+with col_cfg2:
+    include_logs = st.checkbox("Include Data Sanitation Audit Logs", value=True)
+    include_missing = st.checkbox("Include Missing Value Breakdown", value=True)
+    include_sample = st.checkbox("Include Data Sample Preview (First 10 Rows)", value=True)
+
+st.divider()
+
+# ==========================================
+# 📄 Section 3: HTML Report Generator Function
+# ==========================================
+def generate_html_report():
+    num_cols = df.select_dtypes(include=np.number).columns.tolist()
+    cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    
+    # Summary stats HTML
+    summary_html = ""
+    if include_summary and num_cols:
+        desc_df = df[num_cols].describe().T.reset_index()
+        desc_df.rename(columns={"index": "Column Name"}, inplace=True)
+        summary_html = f"<h3>Numerical Attributes Summary</h3>" + desc_df.to_html(index=False, classes="styled-table")
+
+    # Audit Logs HTML
+    logs_html = ""
+    if include_logs and cleaning_log:
+        logs_items = "".join([f"<li>{log}</li>" for log in cleaning_log])
+        logs_html = f"<h3>Data Sanitation Audit Log</h3><ul>{logs_items}</ul>"
+    elif include_logs:
+        logs_html = "<h3>Data Sanitation Audit Log</h3><p>No automated cleaning operations logged in this session.</p>"
+
+    # Missing Values HTML
+    missing_html = ""
+    if include_missing:
+        missing_df = df.isnull().sum().reset_index()
+        missing_df.columns = ["Column Name", "Missing Count"]
+        missing_df["Missing Percentage (%)"] = (missing_df["Missing Count"] / len(df) * 100).round(2)
+        missing_df = missing_df[missing_df["Missing Count"] > 0]
+        
+        if not missing_df.empty:
+            missing_html = "<h3>Missing Values Breakdown</h3>" + missing_df.to_html(index=False, classes="styled-table")
+        else:
+            missing_html = "<h3>Missing Values Breakdown</h3><p>✅ Complete Dataset: No missing values detected!</p>"
+
+    # Data Sample HTML
+    sample_html = ""
+    if include_sample:
+        sample_html = "<h3>Dataset Preview (Top 10 Rows)</h3>" + df.head(10).to_html(index=False, classes="styled-table")
+
+    # Complete HTML Document
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{report_title}</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 40px;
+                background-color: #f9f9f9;
+                color: #333;
+            }}
+            .header {{
+                text-align: center;
+                border-bottom: 2px solid #0066cc;
+                padding-bottom: 10px;
+                margin-bottom: 30px;
+            }}
+            .header h1 {{
+                color: #0066cc;
+                margin-bottom: 5px;
+            }}
+            .header p {{
+                color: #666;
+                font-size: 14px;
+            }}
+            .kpi-box {{
+                display: flex;
+                justify-content: space-around;
+                background-color: #ffffff;
+                padding: 15px;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                margin-bottom: 30px;
+            }}
+            .kpi-card {{
+                text-align: center;
+            }}
+            .kpi-card h4 {{
+                margin: 0;
+                color: #888;
+            }}
+            .kpi-card p {{
+                margin: 5px 0 0 0;
+                font-size: 20px;
+                font-weight: bold;
+                color: #0066cc;
+            }}
+            .styled-table {{
+                border-collapse: collapse;
+                margin: 25px 0;
+                font-size: 14px;
+                min-width: 100%;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+                background-color: #ffffff;
+            }}
+            .styled-table th {{
+                background-color: #0066cc;
+                color: #ffffff;
+                text-align: left;
+                padding: 12px 15px;
+            }}
+            .styled-table td {{
+                padding: 12px 15px;
+                border-bottom: 1px solid #dddddd;
+            }}
+            .styled-table tr:nth-of-type(even) {{
+                background-color: #f3f3f3;
+            }}
+            .footer {{
+                margin-top: 50px;
+                text-align: center;
+                font-size: 12px;
+                color: #aaa;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>{report_title}</h1>
+            <p>Generated by <strong>{author_name}</strong> | Source File: <em>{file_name}</em></p>
+        </div>
+
+        <div class="kpi-box">
+            <div class="kpi-card"><h4>Total Rows</h4><p>{len(df):,}</p></div>
+            <div class="kpi-card"><h4>Total Attributes</h4><p>{df.shape[1]}</p></div>
+            <div class="kpi-card"><h4>Numeric Attributes</h4><p>{len(num_cols)}</p></div>
+            <div class="kpi-card"><h4>Categorical Attributes</h4><p>{len(cat_cols)}</p></div>
+        </div>
+
+        {logs_html}
+        {missing_html}
+        {summary_html}
+        {sample_html}
+
+        <div class="footer">
+            <p>Generated automatically via Enterprise AI Data Analyst Studio.</p>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
+
+# ==========================================
+# 📥 Section 4: Export Options & Downloads
+# ==========================================
+st.subheader("📥 Export Reports & Cleaned Datasets")
+
+col_exp1, col_exp2, col_exp3 = st.columns(3)
+
+html_report = generate_html_report()
+
+with col_exp1:
+    st.download_button(
+        label="📄 Download Executive HTML Report",
+        data=html_report,
+        file_name=f"Executive_Report_{file_name}.html",
+        mime="text/html",
+        type="primary",
+        use_container_width=True
+    )
+
+with col_exp2:
+    csv_data = df.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        label="⬇️ Download Cleaned Data (CSV)",
+        data=csv_data,
+        file_name=f"Final_Cleaned_{file_name}.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+
+with col_exp3:
+    # Export to Excel format in-memory
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Cleaned Data')
+    excel_data = excel_buffer.getvalue()
+
+    st.download_button(
+        label="📊 Download Cleaned Data (Excel)",
+        data=excel_data,
+        file_name=f"Final_Cleaned_{file_name}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
+
+st.divider()
+
+# Interactive Preview of HTML Report
+with st.expander("👁️ Live Preview Generated HTML Executive Report", expanded=False):
+    st.components.v1.html(html_report, height=600, scrolling=True)
+
+st.success("🎉 Enterprise AI Data Analyst Application completed successfully!")
