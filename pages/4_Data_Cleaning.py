@@ -128,8 +128,8 @@ with st.expander("📅 Phase 4: Date Parsing & Feature Extraction"):
     with col_p4_2:
         extract_date_parts = st.checkbox("Extract Date Components (Year, Month, Day, Day Name)")
 
-# --- Phase 7: Outlier Management ---
-with st.expander("📊 Phase 7: Outlier Detection & Treatment (IQR Method)"):
+# --- Phase 5: Outlier Management ---
+with st.expander("📊 Phase 5: Outlier Detection & Treatment (IQR Method)"):
     num_cols = df.select_dtypes(include=np.number).columns.tolist()
     if num_cols:
         col_p7_1, col_p7_2 = st.columns(2)
