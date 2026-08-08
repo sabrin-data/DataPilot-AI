@@ -10,3 +10,4 @@ reportlab
 requests
 pillow
 toml
+chardet
