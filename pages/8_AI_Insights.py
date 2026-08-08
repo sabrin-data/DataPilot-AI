@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, IsolationForest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from sklearn.metrics import r2_score, mean_squared_error, accuracy_score, f1_score, classification_report
+from sklearn.metrics import r2_score, mean_squared_error, accuracy_score, f1_score
 from sklearn.preprocessing import LabelEncoder
 
 # ==========================================
@@ -83,18 +83,35 @@ with tab_ml:
         else:
             with st.spinner("Training model and processing encodings..."):
                 # Data Preparation & Preprocessing
-                ml_df = df[[target_var] + selected_features].dropna().copy()
+                ml_df = df[[target_var] + selected_features].dropna(subset=[target_var]).copy()
                 
-                # Encode Categorical Features
+                # Encoders Map
                 encoders = {}
-                for col in ml_df.columns:
+
+                # Encode Categorical Features in X
+                for col in selected_features:
                     if ml_df[col].dtype == "object" or ml_df[col].dtype.name == "category":
+                        # Fill missing categorical values with mode or string
+                        ml_df[col] = ml_df[col].fillna(ml_df[col].mode()[0] if not ml_df[col].mode().empty else "Missing")
                         le = LabelEncoder()
                         ml_df[col] = le.fit_transform(ml_df[col].astype(str))
                         encoders[col] = le
+                    else:
+                        # Fill missing numerical values with mean
+                        ml_df[col] = ml_df[col].fillna(ml_df[col].mean())
+
+                # Target Variable Encoding for Classification
+                if task_type == "Classification" and (ml_df[target_var].dtype == "object" or ml_df[target_var].dtype.name == "category"):
+                    target_le = LabelEncoder()
+                    ml_df[target_var] = target_le.fit_transform(ml_df[target_var].astype(str))
+                    encoders[target_var] = target_le
 
                 X = ml_df[selected_features]
                 y = ml_df[target_var]
+
+                if len(X) < 5:
+                    st.error("Dataset has too few rows after cleaning missing values. Please clean data or select different features.")
+                    st.stop()
 
                 # Train / Test Split
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -183,7 +200,7 @@ with tab_ml:
                     val = st.selectbox(f"{feat}", classes, key=f"play_{feat}")
                     inputs[feat] = st.session_state["encoders"][feat].transform([val])[0]
                 else:
-                    val = st.number_input(f"{feat}", value=float(df[feat].mean()), key=f"play_{feat}")
+                    val = st.number_input(f"{feat}", value=float(df[feat].mean() if not pd.isna(df[feat].mean()) else 0.0), key=f"play_{feat}")
                     inputs[feat] = val
 
         if st.button("🔮 Generate Prediction", type="secondary"):
@@ -209,30 +226,33 @@ with tab_anomalies:
         if st.button("🔍 Detect Anomalies", type="primary"):
             anom_df = df[anom_cols].dropna().copy()
             
-            iso_model = IsolationForest(contamination=contamination_rate, random_state=42)
-            preds = iso_model.fit_predict(anom_df)
-            
-            # -1 represents Anomaly, 1 represents Normal
-            anom_df["Anomaly_Status"] = np.where(preds == -1, "Anomaly 🚨", "Normal ✅")
-            
-            anom_count = (preds == -1).sum()
-            st.warning(f"🚨 **Detected {anom_count:,} Anomalies** out of **{len(anom_df):,}** total records ({anom_count/len(anom_df)*100:.2f}%).")
+            if len(anom_df) > 0:
+                iso_model = IsolationForest(contamination=contamination_rate, random_state=42)
+                preds = iso_model.fit_predict(anom_df)
+                
+                # -1 represents Anomaly, 1 represents Normal
+                anom_df["Anomaly_Status"] = np.where(preds == -1, "Anomaly 🚨", "Normal ✅")
+                
+                anom_count = (preds == -1).sum()
+                st.warning(f"🚨 **Detected {anom_count:,} Anomalies** out of **{len(anom_df):,}** total records ({anom_count/len(anom_df)*100:.2f}%).")
 
-            # 2D or 3D Visualizer
-            if len(anom_cols) >= 2:
-                fig_anom = px.scatter(
-                    anom_df, 
-                    x=anom_cols[0], 
-                    y=anom_cols[1], 
-                    color="Anomaly_Status",
-                    color_discrete_map={"Normal ✅": "#1f77b4", "Anomaly 🚨": "#d62728"},
-                    title=f"Multidimensional Anomalies: {anom_cols[0]} vs {anom_cols[1]}"
-                )
-                st.plotly_chart(fig_anom, use_container_width=True)
+                # 2D Visualizer
+                if len(anom_cols) >= 2:
+                    fig_anom = px.scatter(
+                        anom_df, 
+                        x=anom_cols[0], 
+                        y=anom_cols[1], 
+                        color="Anomaly_Status",
+                        color_discrete_map={"Normal ✅": "#1f77b4", "Anomaly 🚨": "#d62728"},
+                        title=f"Multidimensional Anomalies: {anom_cols[0]} vs {anom_cols[1]}"
+                    )
+                    st.plotly_chart(fig_anom, use_container_width=True)
 
-            # Preview Anomalies Table
-            st.markdown("##### **Detected Anomaly Records Preview**")
-            st.dataframe(anom_df[anom_df["Anomaly_Status"] == "Anomaly 🚨"], use_container_width=True)
+                # Preview Anomalies Table
+                st.markdown("##### **Detected Anomaly Records Preview**")
+                st.dataframe(anom_df[anom_df["Anomaly_Status"] == "Anomaly 🚨"], use_container_width=True)
+            else:
+                st.error("No valid data points found after dropping missing values.")
     else:
         st.info("At least two numerical columns are required for multidimensional anomaly detection.")
 
