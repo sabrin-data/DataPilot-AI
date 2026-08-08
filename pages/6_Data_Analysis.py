@@ -185,8 +185,13 @@ with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
     
     insights = []
     if len(num_cols) >= 2:
-        corr = df[num_cols].corr().abs()
-        np.fill_diagonal(corr.values, 0)
+        # ✅ FIX: Using .to_numpy().copy() to make the array writable for np.fill_diagonal
+        corr_df = df[num_cols].corr().abs()
+        corr_arr = corr_df.to_numpy().copy()
+        np.fill_diagonal(corr_arr, 0)
+        
+        corr = pd.DataFrame(corr_arr, index=corr_df.index, columns=corr_df.columns)
+        
         max_corr_pair = corr.unstack().idxmax()
         max_corr_val = corr.unstack().max()
         
