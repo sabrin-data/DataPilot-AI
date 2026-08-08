@@ -88,23 +88,26 @@ with tab_ml:
                 # Encoders Map
                 encoders = {}
 
-                # Encode Categorical Features in X
+                # Clean & Encode Features in X
                 for col in selected_features:
-                    if ml_df[col].dtype == "object" or ml_df[col].dtype.name == "category":
-                        # Fill missing categorical values with mode or string
-                        ml_df[col] = ml_df[col].fillna(ml_df[col].mode()[0] if not ml_df[col].mode().empty else "Missing")
+                    if pd.api.types.is_object_dtype(ml_df[col]) or pd.api.types.is_categorical_dtype(ml_df[col]) or pd.api.types.is_string_dtype(ml_df[col]):
+                        fill_val = ml_df[col].mode()[0] if not ml_df[col].mode().empty else "Missing"
+                        ml_df[col] = ml_df[col].fillna(fill_val).astype(str)
+                        
                         le = LabelEncoder()
-                        ml_df[col] = le.fit_transform(ml_df[col].astype(str))
+                        ml_df[col] = le.fit_transform(ml_df[col])
                         encoders[col] = le
                     else:
-                        # Fill missing numerical values with mean
-                        ml_df[col] = ml_df[col].fillna(ml_df[col].mean())
+                        ml_df[col] = pd.to_numeric(ml_df[col], errors='coerce')
+                        mean_val = ml_df[col].mean()
+                        ml_df[col] = ml_df[col].fillna(mean_val if not pd.isna(mean_val) else 0)
 
                 # Target Variable Encoding for Classification
-                if task_type == "Classification" and (ml_df[target_var].dtype == "object" or ml_df[target_var].dtype.name == "category"):
-                    target_le = LabelEncoder()
-                    ml_df[target_var] = target_le.fit_transform(ml_df[target_var].astype(str))
-                    encoders[target_var] = target_le
+                if task_type == "Classification":
+                    if pd.api.types.is_object_dtype(ml_df[target_var]) or pd.api.types.is_categorical_dtype(ml_df[target_var]) or pd.api.types.is_string_dtype(ml_df[target_var]):
+                        target_le = LabelEncoder()
+                        ml_df[target_var] = target_le.fit_transform(ml_df[target_var].astype(str))
+                        encoders[target_var] = target_le
 
                 X = ml_df[selected_features]
                 y = ml_df[target_var]
@@ -200,7 +203,8 @@ with tab_ml:
                     val = st.selectbox(f"{feat}", classes, key=f"play_{feat}")
                     inputs[feat] = st.session_state["encoders"][feat].transform([val])[0]
                 else:
-                    val = st.number_input(f"{feat}", value=float(df[feat].mean() if not pd.isna(df[feat].mean()) else 0.0), key=f"play_{feat}")
+                    mean_val = df[feat].mean() if pd.api.types.is_numeric_dtype(df[feat]) else 0.0
+                    val = st.number_input(f"{feat}", value=float(mean_val if not pd.isna(mean_val) else 0.0), key=f"play_{feat}")
                     inputs[feat] = val
 
         if st.button("🔮 Generate Prediction", type="secondary"):
