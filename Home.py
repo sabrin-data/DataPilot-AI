@@ -20,7 +20,7 @@ except FileNotFoundError:
 # 🖼️ 2. Sidebar Logo & Branding (DataPilot AI)
 with st.sidebar:
     try:
-        st.image("assets/logo.png", width="stretch")
+        st.image("assets/logo.png", use_container_width=True)
     except Exception:
         st.markdown("## 🧠 DataPilot AI")
     st.markdown("<h3 style='text-align: center; color: #3B82F6; margin-top: -10px;'>DataPilot AI</h3>", unsafe_allow_html=True)
@@ -161,7 +161,7 @@ with col_status:
         st.info("📂 **No Active Dataset:** Upload a CSV or Excel file to begin analysis.")
 
 with col_btn:
-    if st.button("📌 Upload Dataset ➔", type="primary", width="stretch"):
+    if st.button("📌 Upload Dataset ➔", type="primary", use_container_width=True):
         st.switch_page("pages/2_Upload.py")
 
 st.divider()
