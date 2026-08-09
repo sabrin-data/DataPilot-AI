@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 1. Load Custom CSS from Assets (Safe Loading with UTF-8 Encoding)
+# 🎨 1. Load Custom CSS from Assets
 try:
     with open("assets/style.css", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -20,13 +20,13 @@ except FileNotFoundError:
 # 🖼️ 2. Sidebar Logo & Branding (DataPilot AI)
 with st.sidebar:
     try:
-        st.image("assets/logo.png", use_container_width=True)
+        st.image("assets/logo.png", width="stretch")
     except Exception:
         st.markdown("## 🧠 DataPilot AI")
     st.markdown("<h3 style='text-align: center; color: #3B82F6; margin-top: -10px;'>DataPilot AI</h3>", unsafe_allow_html=True)
     st.markdown("---")
 
-# Custom Styling with Colorful Modern UI & Aggressive Sidebar Bold Styling
+# Custom Styling with Colorful Modern UI & Sidebar Styling
 st.markdown("""
     <style>
         /* 🎯 Sidebar Navigation Complete Bold Fix */
@@ -135,10 +135,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🚀 Home / Landing Page Interface
+# 🚀 Home / Landing Page Interface (مع اللوجو الرئيسي)
 # ==========================================
-st.markdown("<div class='main-title'>🧠 DataPilot AI</div>", unsafe_allow_html=True)
-st.markdown("<div class='sub-title'>An Enterprise-Grade Automated Data Sanitation, Profiling, Interactive Analytics, and AI Reporting Engine.</div>", unsafe_allow_html=True)
+head_col1, head_col2 = st.columns([1, 5])
+
+with head_col1:
+    try:
+        st.image("assets/logo.png", width=110)
+    except Exception:
+        pass
+
+with head_col2:
+    st.markdown("<div class='main-title'>DataPilot AI</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sub-title'>An Enterprise-Grade Automated Data Sanitation, Profiling, Interactive Analytics, and AI Reporting Engine.</div>", unsafe_allow_html=True)
 
 # Active File Banner
 col_status, col_btn = st.columns([3, 1])
@@ -152,7 +161,7 @@ with col_status:
         st.info("📂 **No Active Dataset:** Upload a CSV or Excel file to begin analysis.")
 
 with col_btn:
-    if st.button("📌 Upload Dataset ➔", type="primary", use_container_width=True):
+    if st.button("📌 Upload Dataset ➔", type="primary", width="stretch"):
         st.switch_page("pages/2_Upload.py")
 
 st.divider()
