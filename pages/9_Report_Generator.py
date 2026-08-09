@@ -1,8 +1,9 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
 import io
 import base64
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import streamlit as st
 
 # ==========================================
 # 0. Page Configuration
@@ -13,8 +14,15 @@ st.set_page_config(
     layout="wide"
 )
 
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
+
 st.title("📄 Executive Report Generator & Export Studio")
-st.write("Synthesize dataset metrics, cleaning logs, and statistical insights into a comprehensive HTML report.")
+st.write("Synthesize dataset metrics, cleaning logs, statistical insights, and visual dashboards into a comprehensive report.")
 
 # ==========================================
 # 1. Check Dataset Availability
@@ -49,8 +57,9 @@ col_cfg1, col_cfg2 = st.columns(2)
 
 with col_cfg1:
     report_title = st.text_input("Report Title", value=f"Data Insight Analysis Report - {file_name}")
-    author_name = st.text_input("Prepared By", value="AI Data Analyst Studio")
+    author_name = st.text_input("Prepared By", value="DataPilot AI Analyst")
     include_summary = st.checkbox("Include Summary Statistics Table", value=True)
+    include_charts = st.checkbox("Include Dashboard Visual Charts", value=True) # خيار إضافة الرسوم البيانية
 
 with col_cfg2:
     include_logs = st.checkbox("Include Data Sanitation Audit Logs", value=True)
@@ -60,20 +69,20 @@ with col_cfg2:
 st.divider()
 
 # ==========================================
-# 📄 Section 3: HTML Report Generator Function
+# 📄 Section 3: HTML Report Generator Function (مع الرسوم البيانية)
 # ==========================================
 def generate_html_report():
     num_cols = df.select_dtypes(include=np.number).columns.tolist()
     cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
     
-    # Summary stats HTML
+    # 1. Summary stats HTML
     summary_html = ""
     if include_summary and num_cols:
         desc_df = df[num_cols].describe().T.reset_index()
         desc_df.rename(columns={"index": "Column Name"}, inplace=True)
         summary_html = f"<h3>Numerical Attributes Summary</h3>" + desc_df.to_html(index=False, classes="styled-table")
 
-    # Audit Logs HTML
+    # 2. Audit Logs HTML
     logs_html = ""
     if include_logs and cleaning_log:
         logs_items = "".join([f"<li>{log}</li>" for log in cleaning_log])
@@ -81,7 +90,7 @@ def generate_html_report():
     elif include_logs:
         logs_html = "<h3>Data Sanitation Audit Log</h3><p>No automated cleaning operations logged in this session.</p>"
 
-    # Missing Values HTML
+    # 3. Missing Values HTML
     missing_html = ""
     if include_missing:
         missing_df = df.isnull().sum().reset_index()
@@ -94,7 +103,23 @@ def generate_html_report():
         else:
             missing_html = "<h3>Missing Values Breakdown</h3><p>✅ Complete Dataset: No missing values detected!</p>"
 
-    # Data Sample HTML
+    # 4. Dashboard Charts HTML (توليد الرسوم البيانية)
+    charts_html = ""
+    if include_charts:
+        charts_html += "<h3>Executive Dashboard Visualizations</h3>"
+        
+        # Chart 1: Bar Chart
+        if cat_cols and num_cols:
+            avg_df = df.groupby(cat_cols[0], as_index=False)[num_cols[0]].mean()
+            fig1 = px.bar(avg_df, x=cat_cols[0], y=num_cols[0], title=f"Average {num_cols[0]} by {cat_cols[0]}")
+            charts_html += fig1.to_html(full_html=False, include_plotlyjs='cdn')
+            
+        # Chart 2: Pie Chart
+        if cat_cols:
+            fig2 = px.pie(df, names=cat_cols[0], title=f"Distribution of {cat_cols[0]}")
+            charts_html += fig2.to_html(full_html=False, include_plotlyjs=False)
+
+    # 5. Data Sample HTML
     sample_html = ""
     if include_sample:
         sample_html = "<h3>Dataset Preview (Top 10 Rows)</h3>" + df.head(10).to_html(index=False, classes="styled-table")
@@ -193,11 +218,12 @@ def generate_html_report():
 
         {logs_html}
         {missing_html}
+        {charts_html}
         {summary_html}
         {sample_html}
 
         <div class="footer">
-            <p>Generated automatically via Enterprise AI Data Analyst Studio.</p>
+            <p>Generated automatically via DataPilot AI Studio.</p>
         </div>
     </body>
     </html>
@@ -234,7 +260,6 @@ with col_exp2:
     )
 
 with col_exp3:
-    # Export to Excel format in-memory
     excel_buffer = io.BytesIO()
     with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Cleaned Data')
@@ -254,4 +279,4 @@ st.divider()
 with st.expander("👁️ Live Preview Generated HTML Executive Report", expanded=False):
     st.components.v1.html(html_report, height=600, scrolling=True)
 
-st.success("🎉 Enterprise AI Data Analyst Application completed successfully!")
+st.success("🎉 Report Studio Ready!")

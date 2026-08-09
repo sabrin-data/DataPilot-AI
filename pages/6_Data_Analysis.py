@@ -3,7 +3,14 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
 
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 # ==========================================
 # 0. Page Configuration
 # ==========================================
@@ -183,31 +190,40 @@ with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder"
 with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
     st.subheader("💡 Key Statistical Insights & Correlation Findings")
     
-    insights = []
+    # 1. Correlation Analysis
     if len(num_cols) >= 2:
-        # ✅ FIX: Using .to_numpy().copy() to make the array writable for np.fill_diagonal
-        corr_df = df[num_cols].corr().abs()
-        corr_arr = corr_df.to_numpy().copy()
-        np.fill_diagonal(corr_arr, 0)
-        
-        corr = pd.DataFrame(corr_arr, index=corr_df.index, columns=corr_df.columns)
-        
+        corr = df[num_cols].corr().abs()
+        np.fill_diagonal(corr.values, 0)
         max_corr_pair = corr.unstack().idxmax()
         max_corr_val = corr.unstack().max()
         
         if max_corr_val > 0.6:
-            insights.append(f"🔗 **Strong Correlation Detected:** `{max_corr_pair[0]}` and `{max_corr_pair[1]}` have a high correlation coefficient of **{max_corr_val:.2f}**.")
+            st.info(f"🔗 **Strong Correlation Detected:** `{max_corr_pair[0]}` and `{max_corr_pair[1]}` have a high correlation coefficient of **{max_corr_val:.2f}**.")
 
-    for col in num_cols:
+    # 2. Skewness Analysis (Filtered for continuous numerical features only)
+    # Exclude dummy/binary columns (columns with <= 2 unique values)
+    continuous_num_cols = [c for c in num_cols if df[c].nunique() > 2]
+    
+    skewed_cols = []
+    for col in continuous_num_cols:
         skew_val = df[col].skew()
         if abs(skew_val) > 1.5:
-            insights.append(f"⚠️ **High Skewness:** Column `{col}` is heavily skewed (Skewness = **{skew_val:.2f}**). Consider applying a Log transformation.")
+            skewed_cols.append((col, skew_val))
 
-    if not insights:
-        insights.append("✅ No extreme anomalies or dominant strong correlations detected in the current numeric attributes.")
-
-    for ins in insights:
-        st.info(ins)
+    # Display Skewness Warnings in a clean & compact manner
+    if skewed_cols:
+        st.markdown("##### **High Skewness Warnings**")
+        # Display top 3 warnings
+        for col, val in skewed_cols[:3]:
+            st.warning(f"⚠️ **High Skewness:** Column `{col}` is heavily skewed (Skewness = **{val:.2f}**). Consider applying a Log transformation.")
+        
+        # Collapse remaining warnings inside an expander if there are more than 3
+        if len(skewed_cols) > 3:
+            with st.expander(f"🔍 Show {len(skewed_cols) - 3} more skewed columns..."):
+                for col, val in skewed_cols[3:]:
+                    st.write(f"• **`{col}`**: Skewness = **{val:.2f}** (Consider Log transformation)")
+    elif len(num_cols) < 2:
+        st.info("✅ No extreme anomalies or dominant strong correlations detected in the current numeric attributes.")
 
 st.divider()
 

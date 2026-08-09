@@ -1,89 +1,35 @@
-# 🚀 DataPilot AI - Smart Data Analysis & Dashboard Platform
+# 🧠 DataPilot AI — Enterprise Automated Analytics Platform
 
-**DataPilot AI** هي منصة متكاملة لتحليل البيانات وتنظيفها وإنشاء التقرير والرسوم البيانية التفاعلية بسهولة من خلال رفع ملفات البيانات (Excel / CSV).
+![DataPilot AI Logo](assets/logo.png)
 
-🌐 **رابط المعاينة المباشرة (Live Demo):** [datapilot-analytics.streamlit.app](https://datapilot-analytics.streamlit.app/)
-
----
-
-## 📌 مميزات المنصة الرئيسية
-
-* 📁 **دعم متعدد الصيغ:** دعم رفع ملفات Excel (`.xlsx`, `.xls`) وملفات `.csv`.
-* 🔍 **معالجة تلقائية للترميز:** قراءة الملفات بمختلف أنواع الترميز (Encoding) دون مشاكل.
-* 🧹 **تنظيف ومعالجة البيانات:** معالجة القيم المفقودة والتكرارات وتعديل أنواع البيانات.
-* 📊 **تحليل إحصائي ورسوم تفاعلية:** رسوم بيانية مدعومة بـ Plotly مع دعم خطوط الاتجاه الإحصائية (Trendlines).
-* 📑 **تصدير التقارير:** إمكانية تصدير البيانات المنظفة والرسوم التفاعلية والتقارير بأعلى جودة.
+**DataPilot AI** is an enterprise-grade automated data sanitation, profiling, interactive Power BI-style analytics, and AI report generation engine built with **Python** and **Streamlit**.
 
 ---
 
-## 🛠️ الشرح التفصيلي لصفحات التطبيق وكيفية الاستخدام
+## 🚀 Key Features
 
-### 1. 🏠 Home (الرئيسية)
-* **الوصف:** الواجهة الأولى للترحيب بالمستخدم وتقديم نبذة عامة عن إمكانيات المنصة والخطوات الأساسية لبدء تحليل البيانات.
-
-### 2. 📤 Upload (رفع البيانات)
-* **طريقة الاستخدام:**
-  1. قم برفع ملف البيانات الخطي الخاص بك (`.xlsx` أو `.csv`).
-  2. يقوم النظام بقراءة الملف ومعاينته فوراً مع إظهار حجم البيانات وعينات سريعة منها.
-
-### 3. 🔍 Data Overview (نظرة عامة على البيانات)
-* **الوصف:** استعراض الهيكل العام للملف.
-* **المميزات:**
-  * عرض أبعاد الجدول (عدد الأسطر والأعمدة).
-  * إظهار أنواع البيانات لكل أعمدة الجدول (Numerical / Categorical).
-  * استعراض ملخص الإحصاءات الوصفية (Mean, Median, Min, Max, Standard Deviation).
-
-### 4. 🧹 Data Cleaning (تنظيف البيانات)
-* **الوصف:** صفحة مخصصة لمعالجة أخطاء ومشاكل البيانات قبل التحليل.
-* **الوظائف:**
-  * كشف القيم المفقودة (Null Values) ومعالجتها (حذف أو تعبئة).
-  * إزالة الأسطر المكررة (Duplicate Rows).
-  * تعديل صيغ وأنواع الأعمدة (Data Types Conversion).
-
-### 5. ⚙️ Feature Engineering (هندسة الميزات)
-* **الوصف:** إضافة وقص أعمدة جديدة واستخلاص معلومات مفيدة.
-* **الوظائف:**
-  * إنشاء أعمدة حسابية جديدة بناءً على أعمدة حالية.
-  * استخراج أجزاء من التواريخ (Year, Month, Day).
-  * ترميز المتغيرات الفئوية (Categorical Encoding).
-
-### 6. 📊 Data Analysis (تحليل البيانات)
-* **الوصف:** القلب النابض للمنصة لاستكشاف العلاقات بين المتغيرات.
-* **المميزات:**
-  * رسم Relsationships باستخدام مخططات الانتشار (Scatter Plots).
-  * رسم خطوط الاتجاه الإحصائي (OLS Trendlines) لفهم التوجهات.
-  * إنشاء مخططات الأعمدة (Bar Charts) والتوزيعات (Histograms/Boxplots).
-
-### 7. 📈 Dashboard (لوحة التحكم التفاعلية)
-* **الوصف:** شاشة عرض متكاملة تلخص أهم مؤشرات الأداء الرئيسية (KPIs) في مكان واحد مع فلاتر ديناميكية للبيانات.
-
-### 8. 💡 AI Insights (رؤى الذكاء الاصطناعي)
-* **الوصف:** تقديم تحليلات وقراءات ذكية وتلقائية لأهم أنماط البيانات والملخصات لتسهيل اتخاذ القرارات.
-
-### 9. 📝 Report Generator (مولد التقارير)
-* **الوصف:** تجميع كافة نتائج التحليل والرسومات البيانية في تقرير شامل وقابل للتنزيل أو الطباعة.
-
-### 10. 📦 Export Project (تصدير المشروع)
-* **الوصف:** تسمح للمستخدم بتنزيل البيانات النهائية المعدلة والمنظفة بصيغة Excel أو CSV لاستخدامها في تطبيقات أخرى.
-
-### ⚙️ 11. Settings (الإعدادات)
-* **الوصف:** تخصيص ثيم المظهر، وتعديل خيارات العرض، وإدارة جلسة العمل (Reset Session).
+* 📁 **Multi-format Ingestion:** Seamless support for CSV and Excel (`.xlsx`, `.xls`) files with automated encoding detection.
+* 🩺 **Data Overview & Health Score:** Power BI-style data diagnostics providing an interactive Health Score (0–100%), quality metrics, and missing value checks.
+* 🧹 **8-Phase Advanced Cleaning:** Automated text normalization, custom mapping, currency parsing, and numeric outlier capping.
+* ⚙️ **Feature Engineering:** One-click categorical encoding, feature scaling (Standard/MinMax), datetime component extraction, and custom expressions.
+* 📊 **Interactive Executive Dashboard:** Dynamic Slicers, real-time filtering, KPI scorecards, interactive Plotly bar/pie/scatter charts.
+* 🤖 **AI Machine Learning Insights:** Automated Regression & Classification modeling, feature importance drivers, and Isolation Forest anomaly detection.
+* 📄 **Executive Reporting & Export:** HTML/PDF printable report generator and full project ZIP bundle export (cleaned datasets + audit logs).
 
 ---
 
-## 💻 المكتبات والتقنيات المستخدمة (Tech Stack)
+## 🛠️ Tech Stack & Architecture
 
-* **Language:** Python 3.x
-* **Framework:** Streamlit
-* **Data Processing:** Pandas, NumPy
-* **Visualization:** Plotly Express, Seaborn, Matplotlib
-* **Machine Learning & Stats:** Scikit-Learn, SciPy, Statsmodels
-* **File Handling:** OpenPyXL, XlsxWriter, Chardet
+* **Frontend & UX:** Streamlit, Custom HTML5/CSS3 styling.
+* **Data Processing & Analytics:** Pandas, NumPy, Scikit-Learn.
+* **Visualization Engine:** Plotly Express & Plotly Graph Objects.
+* **Architecture:** Modular Python package design (`core/`, `utils/`, `templates/`, `models/`).
 
 ---
 
-## 🚀 طريقة التشغيل المحتلي (Local Setup)
+## ⚙️ Local Setup & Installation
 
-1. قم بعمل Clone للمستودع:
-   ```bash
-   git clone [https://github.com/sabrin-data/datapilot-ai.git](https://github.com/sabrin-data/datapilot-ai.git)
+### 1. Clone the Repository
+```bash
+git clone https://github.com/YOUR_USERNAME/DataPilot_AI.git
+cd DataPilot_AI

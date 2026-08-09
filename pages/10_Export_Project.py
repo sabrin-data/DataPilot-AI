@@ -4,7 +4,14 @@ import streamlit as st
 import pandas as pd
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils import get_column_letter
+import streamlit as st
 
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 # ==============================================================================
 # 0. Page Configuration
 # ==============================================================================

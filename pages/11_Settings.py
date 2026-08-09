@@ -2,7 +2,14 @@ import streamlit as st
 import sys
 import platform
 import pandas as pd
+import streamlit as st
 
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 # ==========================================
 # 0. Page Configuration
 # ==========================================
@@ -23,12 +30,31 @@ st.subheader("🎨 UI Preferences & Environment Settings")
 col_set1, col_set2 = st.columns(2)
 
 with col_set1:
-    default_page_size = st.selectbox("Default Table Page Size", [10, 25, 50, 100], index=0)
-    enable_notifications = st.toggle("Enable Toast Notifications", value=True)
+    default_page_size = st.selectbox(
+        "Default Table Page Size", 
+        [10, 25, 50, 100], 
+        index=[10, 25, 50, 100].index(st.session_state.get("page_size", 10)),
+        key="page_size"
+    )
+    enable_notifications = st.toggle(
+        "Enable Toast Notifications", 
+        value=st.session_state.get("enable_toasts", True),
+        key="enable_toasts"
+    )
 
 with col_set2:
-    precision = st.slider("Floating Point Display Precision", min_value=1, max_value=6, value=2)
-    auto_refresh = st.toggle("Auto-Refresh Dashboard Widgets", value=False)
+    precision = st.slider(
+        "Floating Point Display Precision", 
+        min_value=1, 
+        max_value=6, 
+        value=st.session_state.get("precision", 2),
+        key="precision"
+    )
+    auto_refresh = st.toggle(
+        "Auto-Refresh Dashboard Widgets", 
+        value=st.session_state.get("auto_refresh", False),
+        key="auto_refresh"
+    )
 
 st.divider()
 
@@ -41,16 +67,40 @@ st.write("Configure external LLM provider keys for automated AI insights.")
 col_api1, col_api2 = st.columns(2)
 
 with col_api1:
-    openai_key = st.text_input("OpenAI API Key", type="password", help="Enter your sk-... key here for GPT integrations.")
-    if st.button("Save OpenAI Key"):
+    has_openai = bool(st.session_state.get("openai_key"))
+    openai_status = "🟢 Saved" if has_openai else "🔴 Not Set"
+    
+    openai_key = st.text_input(
+        f"OpenAI API Key ({openai_status})",
+        value=st.session_state.get("openai_key", ""),
+        type="password",
+        placeholder="sk-...",
+        help="Enter your sk-... key here for GPT integrations."
+    )
+    if st.button("Save OpenAI Key", key="save_openai", use_container_width=True):
         st.session_state["openai_key"] = openai_key
+        if st.session_state.get("enable_toasts", True):
+            st.toast("OpenAI Key saved successfully!", icon="🔑")
         st.success("OpenAI Key saved in session context!")
+        st.rerun()
 
 with col_api2:
-    gemini_key = st.text_input("Google Gemini API Key", type="password", help="Enter your Gemini AI key here.")
-    if st.button("Save Gemini Key"):
+    has_gemini = bool(st.session_state.get("gemini_key"))
+    gemini_status = "🟢 Saved" if has_gemini else "🔴 Not Set"
+
+    gemini_key = st.text_input(
+        f"Google Gemini API Key ({gemini_status})",
+        value=st.session_state.get("gemini_key", ""),
+        type="password",
+        placeholder="AIzaSy...",
+        help="Enter your Gemini AI key here."
+    )
+    if st.button("Save Gemini Key", key="save_gemini", use_container_width=True):
         st.session_state["gemini_key"] = gemini_key
+        if st.session_state.get("enable_toasts", True):
+            st.toast("Gemini Key saved successfully!", icon="🔑")
         st.success("Gemini Key saved in session context!")
+        st.rerun()
 
 st.divider()
 
@@ -72,6 +122,8 @@ with col_mem2:
     if st.button("🗑️ Clear Cache & Reset All Session Data", type="primary", use_container_width=True):
         st.session_state.clear()
         st.cache_data.clear()
+        if st.session_state.get("enable_toasts", True):
+            st.toast("Cache and session completely reset!", icon="🧹")
         st.success("Session state and cache completely reset!")
         st.rerun()
 

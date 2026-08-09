@@ -10,9 +10,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 1. Load Custom CSS from Assets (Safe Loading)
+# 🎨 1. Load Custom CSS from Assets (Safe Loading with UTF-8 Encoding)
 try:
-    with open("assets/style.css") as f:
+    with open("assets/style.css", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
@@ -26,9 +26,35 @@ with st.sidebar:
     st.markdown("<h3 style='text-align: center; color: #3B82F6; margin-top: -10px;'>DataPilot AI</h3>", unsafe_allow_html=True)
     st.markdown("---")
 
-# Custom Styling with Colorful Modern UI
+# Custom Styling with Colorful Modern UI & Aggressive Sidebar Bold Styling
 st.markdown("""
     <style>
+        /* 🎯 Sidebar Navigation Complete Bold Fix */
+        [data-testid="stSidebarNav"] * {
+            font-weight: 700 !important;
+            color: #0F172A !important;
+        }
+
+        [data-testid="stSidebarNav"] a, 
+        [data-testid="stSidebarNav"] a span,
+        [data-testid="stSidebarNav"] li div span {
+            font-weight: 700 !important;
+            font-size: 15px !important;
+            color: #0F172A !important;
+        }
+
+        [data-testid="stSidebarNav"] a[aria-current="page"],
+        [data-testid="stSidebarNav"] a[aria-current="page"] span {
+            font-weight: 900 !important;
+            color: #2563EB !important;
+            background-color: #E0E7FF !important;
+            border-radius: 8px !important;
+        }
+
+        [data-testid="stSidebarNav"] a:hover span {
+            color: #2563EB !important;
+        }
+
         /* Modern Title Styling */
         .main-title {
             font-size: 40px;

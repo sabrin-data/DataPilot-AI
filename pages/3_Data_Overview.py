@@ -3,7 +3,14 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
 
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 # ==========================================
 # 0. Page Configuration
 # ==========================================

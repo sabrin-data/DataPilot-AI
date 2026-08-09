@@ -10,7 +10,14 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.metrics import r2_score, mean_squared_error, accuracy_score, f1_score
 from sklearn.preprocessing import LabelEncoder
+import streamlit as st
 
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 # ==========================================
 # 0. Page Configuration
 # ==========================================
@@ -36,10 +43,24 @@ file_name = st.session_state.get("file_name", "Dataset")
 st.info(f"📁 Active Dataset: **{file_name}** | Rows: **{df.shape[0]:,}** | Columns: **{df.shape[1]}**")
 st.divider()
 
-# Classify attributes
+# Classify attributes and filter out URL/High Cardinality ID columns
 num_cols = df.select_dtypes(include=np.number).columns.tolist()
-cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
 all_cols = df.columns.tolist()
+
+# Helper to identify text/URL columns unsuitable for numeric modeling
+def is_url_or_id_col(series):
+    if series.dtype == 'object' or pd.api.types.is_string_dtype(series):
+        sample_vals = series.dropna().astype(str).str.lower()
+        if sample_vals.str.startswith(('http://', 'https://', 'www.')).any():
+            return True
+        if series.nunique() > 50 and series.nunique() / len(series) > 0.8:
+            return True
+    return False
+
+valid_target_cols = [c for c in all_cols if not is_url_or_id_col(df[c])]
+
+if not valid_target_cols:
+    valid_target_cols = all_cols
 
 # Prepare Tabs
 tab_ml, tab_anomalies = st.tabs(["🎯 Automated Predictive Machine Learning", "🚨 Isolation Forest Anomaly Detection"])
@@ -53,7 +74,12 @@ with tab_ml:
     col_setup1, col_setup2, col_setup3 = st.columns(3)
     
     with col_setup1:
-        target_var = st.selectbox("Select Target Variable (Y)", all_cols, index=len(all_cols)-1)
+        # Default index set to a valid numeric target if available
+        default_target_idx = 0
+        if num_cols:
+            default_target_idx = valid_target_cols.index(num_cols[0]) if num_cols[0] in valid_target_cols else 0
+            
+        target_var = st.selectbox("Select Target Variable (Y)", valid_target_cols, index=default_target_idx)
     
     # Determine task type (Regression vs Classification)
     is_numeric_target = target_var in num_cols
@@ -73,8 +99,8 @@ with tab_ml:
         else:
             model_name = st.selectbox("Select Algorithm", ["Random Forest Classifier", "Logistic Regression", "Decision Tree Classifier"])
 
-    # Predictors Selection
-    available_features = [c for c in all_cols if c != target_var]
+    # Predictors Selection (Excluding selected Y and obvious URLs/IDs)
+    available_features = [c for c in all_cols if c != target_var and not is_url_or_id_col(df[c])]
     selected_features = st.multiselect("Select Feature Predictors (X)", available_features, default=available_features)
 
     if st.button("🚀 Train Machine Learning Model", type="primary", use_container_width=True):
@@ -85,6 +111,11 @@ with tab_ml:
                 # Data Preparation & Preprocessing
                 ml_df = df[[target_var] + selected_features].dropna(subset=[target_var]).copy()
                 
+                # Validation for Regression Target
+                if task_type == "Regression" and not pd.api.types.is_numeric_dtype(ml_df[target_var]):
+                    st.error(f"Cannot perform Regression on non-numeric target '{target_var}'. Please select 'Classification' task type or pick a numeric Target variable.")
+                    st.stop()
+
                 # Encoders Map
                 encoders = {}
 
@@ -104,7 +135,7 @@ with tab_ml:
 
                 # Target Variable Encoding for Classification
                 if task_type == "Classification":
-                    if pd.api.types.is_object_dtype(ml_df[target_var]) or pd.api.types.is_categorical_dtype(ml_df[target_var]) or pd.api.types.is_string_dtype(ml_df[target_var]):
+                    if not pd.api.types.is_numeric_dtype(ml_df[target_var]):
                         target_le = LabelEncoder()
                         ml_df[target_var] = target_le.fit_transform(ml_df[target_var].astype(str))
                         encoders[target_var] = target_le

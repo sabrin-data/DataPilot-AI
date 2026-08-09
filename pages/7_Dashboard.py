@@ -1,8 +1,23 @@
-import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
+import streamlit as st
 
-st.set_page_config(page_title="DataPilot AI - Executive Dashboard", layout="wide")
+# ==========================================
+# 0. Page Configuration
+# ==========================================
+st.set_page_config(
+    page_title="DataPilot AI - Executive Dashboard", 
+    page_icon="📊",
+    layout="wide"
+)
+
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 
 st.title("📊 Executive Dashboard & AI Assistant")
 
@@ -29,7 +44,7 @@ for col in categorical_cols[:3]: # استخدام أول 3 أعمدة نصية �
         filtered_df = filtered_df[filtered_df[col].isin(selected_vals)]
 
 # ==========================================
-# 2. TOP KPIs SECTION (أرقام رئيسية زي الإكسيل)
+# 2. TOP KPIs SECTION
 # ==========================================
 st.markdown("### 📈 Key Performance Indicators (KPIs)")
 numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
@@ -49,7 +64,7 @@ if numeric_cols:
 st.divider()
 
 # ==========================================
-# 3. EXECUTIVE VISUAL BREAKDOWN (الرسومات المعدلة)
+# 3. EXECUTIVE VISUAL BREAKDOWN (الرسومات البيانية)
 # ==========================================
 st.markdown("### 📉 Executive Visual Breakdown")
 
@@ -57,7 +72,6 @@ col1, col2 = st.columns(2)
 
 with col1:
     if len(categorical_cols) > 0 and len(numeric_cols) > 0:
-        # حساب المتوسط لتفادي جمع الأرقام وتضخمها
         avg_df = filtered_df.groupby(categorical_cols[0], as_index=False)[numeric_cols[0]].mean()
         
         fig1 = px.bar(
@@ -67,7 +81,6 @@ with col1:
             title=f"Average {numeric_cols[0].replace('_', ' ')} by {categorical_cols[0].title()}",
             color=categorical_cols[0]
         )
-        # تدوير الأسماء 45 درجة وتحسين مظهر المحاور لتفادي التداخل
         fig1.update_layout(
             xaxis_tickangle=-45,
             showlegend=False,
@@ -77,11 +90,9 @@ with col1:
 
 with col2:
     if len(categorical_cols) > 0:
-        # حساب التكرارات وتجميع القيم الصغيرة لتنظيم المخطط الدائري
         counts = filtered_df[categorical_cols[0]].value_counts().reset_index()
         counts.columns = [categorical_cols[0], 'count']
         
-        # إظهار أعلى 10 فقط وتجميع الباقي كـ Other لتفادي ازدحام الأسماء
         if len(counts) > 10:
             top_10 = counts.iloc[:10]
             others_count = counts.iloc[10:]['count'].sum()
@@ -115,7 +126,7 @@ if len(numeric_cols) >= 2:
 st.divider()
 
 # ==========================================
-# 4. AI DATA ASSISTANT (مساعد الذكاء الاصطناعي للأسئلة)
+# 4. AI DATA ASSISTANT (مساعد الذكاء الاصطناعي)
 # ==========================================
 st.markdown("### 🤖 DataPilot AI Copilot (Ask Your Data)")
 st.caption("اكتب أي سؤال يتعلق بالبيانات المفلترة وسيقوم الذكاء الاصطناعي بتحليلها وإجابتك فوراً!")
