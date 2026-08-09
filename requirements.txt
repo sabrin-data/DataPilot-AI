@@ -11,3 +11,4 @@ requests
 pillow
 toml
 chardet
+statsmodels
