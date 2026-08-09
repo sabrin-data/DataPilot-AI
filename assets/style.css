@@ -1,0 +1,52 @@
+/* Custom Styles for DataPilot AI */
+
+.stApp {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Sidebar Background & Border */
+section[data-testid="stSidebar"] {
+    background-color: #F8FAFC !important;
+    border-right: 1px solid #E2E8F0 !important;
+}
+
+/* ==========================================
+   🎯 تغميق خط القائمة الجانبية (شامل لجميع الصفحات)
+   ========================================== */
+
+/* 1. استهداف جميع أزرار وروابط التنقل في السايدبار */
+section[data-testid="stSidebar"] button,
+section[data-testid="stSidebar"] a,
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"] {
+    font-weight: 800 !important;  /* خط غامق جداً */
+    font-size: 16px !important;   /* حجم واضح */
+    color: #0F172A !important;    /* أسود داكن جداً */
+}
+
+/* 2. استهداف النصوص والجُمل داخل عناصر السايدبار */
+section[data-testid="stSidebar"] button *,
+section[data-testid="stSidebar"] a *,
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"] * {
+    font-weight: 800 !important;
+    color: #0F172A !important;
+}
+
+/* 3. الصفحة النشطة حالياً (Active Page Highlight) */
+section[data-testid="stSidebar"] [aria-current="page"],
+section[data-testid="stSidebar"] button[aria-selected="true"],
+section[data-testid="stSidebar"] a[aria-current="page"] span {
+    font-weight: 900 !important;
+    color: #2563EB !important;         /* أزرق واضح */
+    background-color: #E0E7FF !important; /* خلفية أزرق فاتح */
+    border-radius: 8px !important;
+}
+
+/* 4. عند إيماءة الماوس (Hover) */
+section[data-testid="stSidebar"] a:hover *,
+section[data-testid="stSidebar"] button:hover * {
+    color: #2563EB !important;
+}
+
+/* Hide Default Streamlit Elements */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
