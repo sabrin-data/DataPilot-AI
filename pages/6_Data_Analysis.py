@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
 
 # قراءة الـ CSS الموحد
 try:
@@ -11,6 +10,7 @@ try:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
+
 # ==========================================
 # 0. Page Configuration
 # ==========================================
@@ -190,34 +190,41 @@ with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder"
 with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
     st.subheader("💡 Key Statistical Insights & Correlation Findings")
     
-    # 1. Correlation Analysis
+    # 1. Correlation Analysis (Protected against matrix/shape mismatches)
     if len(num_cols) >= 2:
-        corr = df[num_cols].corr().abs()
-        np.fill_diagonal(corr.values, 0)
-        max_corr_pair = corr.unstack().idxmax()
-        max_corr_val = corr.unstack().max()
-        
-        if max_corr_val > 0.6:
-            st.info(f"🔗 **Strong Correlation Detected:** `{max_corr_pair[0]}` and `{max_corr_pair[1]}` have a high correlation coefficient of **{max_corr_val:.2f}**.")
+        try:
+            corr = df[num_cols].corr().abs()
+            # Replace diagonal elements (self-correlation = 1.0) safely without crash
+            for c in corr.columns:
+                corr.loc[c, c] = 0.0
+            
+            if not corr.empty:
+                max_corr_pair = corr.unstack().idxmax()
+                max_corr_val = corr.unstack().max()
+                
+                if pd.notna(max_corr_val) and max_corr_val > 0.6:
+                    st.info(f"🔗 **Strong Correlation Detected:** `{max_corr_pair[0]}` and `{max_corr_pair[1]}` have a high correlation coefficient of **{max_corr_val:.2f}**.")
+        except Exception:
+            pass
 
     # 2. Skewness Analysis (Filtered for continuous numerical features only)
-    # Exclude dummy/binary columns (columns with <= 2 unique values)
     continuous_num_cols = [c for c in num_cols if df[c].nunique() > 2]
     
     skewed_cols = []
     for col in continuous_num_cols:
-        skew_val = df[col].skew()
-        if abs(skew_val) > 1.5:
-            skewed_cols.append((col, skew_val))
+        try:
+            skew_val = df[col].skew()
+            if pd.notna(skew_val) and abs(skew_val) > 1.5:
+                skewed_cols.append((col, skew_val))
+        except Exception:
+            continue
 
-    # Display Skewness Warnings in a clean & compact manner
+    # Display Skewness Warnings
     if skewed_cols:
         st.markdown("##### **High Skewness Warnings**")
-        # Display top 3 warnings
         for col, val in skewed_cols[:3]:
             st.warning(f"⚠️ **High Skewness:** Column `{col}` is heavily skewed (Skewness = **{val:.2f}**). Consider applying a Log transformation.")
         
-        # Collapse remaining warnings inside an expander if there are more than 3
         if len(skewed_cols) > 3:
             with st.expander(f"🔍 Show {len(skewed_cols) - 3} more skewed columns..."):
                 for col, val in skewed_cols[3:]:
