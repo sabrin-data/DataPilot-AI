@@ -93,12 +93,31 @@ with tab_ml:
             st.error("Please select at least one feature for prediction.")
         else:
             with st.spinner("Training model and processing encodings..."):
-                # Data Preparation & Preprocessing
+                # Data Preparation
                 ml_df = df[[target_var] + selected_features].dropna(subset=[target_var]).copy()
-                
                 encoders = {}
 
-                # Clean & Encode Features in X
+                # ----------------------------------------------------
+                # 1. Clean & Encode Target Variable (Y) safely
+                # ----------------------------------------------------
+                if task_type == "Regression":
+                    # حاول تحويل y لأرقام، وإذا لم يستطع يجعلها NaN ثم يحذفها
+                    ml_df[target_var] = pd.to_numeric(ml_df[target_var], errors='coerce')
+                    ml_df = ml_df.dropna(subset=[target_var])
+                    
+                    if ml_df.empty:
+                        st.error("❌ The selected Target Variable (Y) contains non-numeric values and cannot be used for Regression. Please select a numerical column (e.g. price/speed) or switch Task Type to 'Classification'.")
+                        st.stop()
+                else:
+                    # في حالة Classification نقوم بترميز الـ Target إذا كان نصياً
+                    if pd.api.types.is_object_dtype(ml_df[target_var]) or pd.api.types.is_categorical_dtype(ml_df[target_var]) or pd.api.types.is_string_dtype(ml_df[target_var]):
+                        target_le = LabelEncoder()
+                        ml_df[target_var] = target_le.fit_transform(ml_df[target_var].astype(str))
+                        encoders[target_var] = target_le
+
+                # ----------------------------------------------------
+                # 2. Clean & Encode Predictors (X) safely
+                # ----------------------------------------------------
                 for col in selected_features:
                     if pd.api.types.is_object_dtype(ml_df[col]) or pd.api.types.is_categorical_dtype(ml_df[col]) or pd.api.types.is_string_dtype(ml_df[col]):
                         fill_val = ml_df[col].mode()[0] if not ml_df[col].mode().empty else "Missing"
@@ -112,18 +131,11 @@ with tab_ml:
                         mean_val = ml_df[col].mean()
                         ml_df[col] = ml_df[col].fillna(mean_val if not pd.isna(mean_val) else 0)
 
-                # Target Variable Encoding for Classification
-                if task_type == "Classification":
-                    if pd.api.types.is_object_dtype(ml_df[target_var]) or pd.api.types.is_categorical_dtype(ml_df[target_var]) or pd.api.types.is_string_dtype(ml_df[target_var]):
-                        target_le = LabelEncoder()
-                        ml_df[target_var] = target_le.fit_transform(ml_df[target_var].astype(str))
-                        encoders[target_var] = target_le
-
                 X = ml_df[selected_features]
                 y = ml_df[target_var]
 
                 if len(X) < 5:
-                    st.error("Dataset has too few rows after cleaning missing values. Please clean data or select different features.")
+                    st.error("Dataset has too few valid rows after cleaning missing values. Please select different features or target.")
                     st.stop()
 
                 # Train / Test Split
