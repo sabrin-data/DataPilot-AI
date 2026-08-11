@@ -21,7 +21,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# تفعيل القائمة الجانبية للغة
+# تفعيل تهيئة اللغة
 init_language()
 
 # قراءة الـ CSS الموحد
