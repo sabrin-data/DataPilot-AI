@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from utils.translations import init_language, t  # <--- استدعاء نظام الترجمة
 
 # قراءة الـ CSS الموحد
 try:
@@ -12,7 +13,7 @@ except FileNotFoundError:
     pass
 
 # ==========================================
-# 0. Page Configuration
+# 0. Page Configuration & Language Init
 # ==========================================
 st.set_page_config(
     page_title="Exploratory Data Analysis",
@@ -20,20 +21,23 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🔍 Exploratory Data Analysis (EDA) Studio")
-st.write("Interactive statistical analysis, dynamic visual relationship discovery, and automated data insights.")
+# تفعيل القائمة الجانبية لاختيار اللغة
+init_language()
+
+st.title(t("title"))
+st.write(t("sub_title"))
 
 # ==========================================
 # 1. Check Dataset Availability
 # ==========================================
 if "df" not in st.session_state or st.session_state["df"] is None:
-    st.warning("📂 Please upload a dataset first from the Upload page.")
+    st.warning(t("no_dataset"))
     st.stop()
 
 df = st.session_state["df"]
 file_name = st.session_state.get("file_name", "Dataset")
 
-st.info(f"📁 Active Dataset: **{file_name}** | Dimensions: **{df.shape[0]:,} rows × {df.shape[1]} columns**")
+st.info(f"📁 {t('active_dataset')}: **{file_name}** | {t('dimensions')}: **{df.shape[0]:,} {t('rows')} × {df.shape[1]} {t('cols')}**")
 st.divider()
 
 # Classify columns
@@ -44,7 +48,7 @@ dt_cols = df.select_dtypes(include=["datetime", "datetimetz"]).columns.tolist()
 # ==========================================
 # 📊 Section 1: Univariate Analysis
 # ==========================================
-with st.expander("📊 Section 1: Single Variable Analysis (Univariate Analysis)", expanded=True):
+with st.expander(t("sec1_title"), expanded=True):
     uni_tab1, uni_tab2 = st.tabs(["🔢 Numerical Variables", "📝 Categorical Variables"])
 
     # 1. Numerical Analysis
@@ -107,7 +111,7 @@ with st.expander("📊 Section 1: Single Variable Analysis (Univariate Analysis)
 # ==========================================
 # 📈 Section 2: Bivariate & Relationship Analysis
 # ==========================================
-with st.expander("📈 Section 2: Multi-Variable Relationship Analysis", expanded=False):
+with st.expander(t("sec2_title"), expanded=False):
     bi_tab1, bi_tab2, bi_tab3 = st.tabs(["🔵 Scatter / Line Plots", "📦 Numeric vs Categorical", "🔥 Correlation Matrix"])
 
     # 1. Scatter / Line
@@ -159,7 +163,7 @@ with st.expander("📈 Section 2: Multi-Variable Relationship Analysis", expande
 # ==========================================
 # 🧩 Section 3: Interactive GroupBy & Aggregations
 # ==========================================
-with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder", expanded=False):
+with st.expander(t("sec3_title"), expanded=False):
     if cat_cols and num_cols:
         ag1, ag2, ag3 = st.columns(3)
         with ag1:
@@ -187,14 +191,13 @@ with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder"
 # ==========================================
 # 💡 Section 4: Automated Smart EDA Insights
 # ==========================================
-with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
+with st.expander(t("sec4_title"), expanded=True):
     st.subheader("💡 Key Statistical Insights & Correlation Findings")
     
     # 1. Correlation Analysis (Protected against matrix/shape mismatches)
     if len(num_cols) >= 2:
         try:
             corr = df[num_cols].corr().abs()
-            # Replace diagonal elements (self-correlation = 1.0) safely without crash
             for c in corr.columns:
                 corr.loc[c, c] = 0.0
             
@@ -207,7 +210,7 @@ with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
         except Exception:
             pass
 
-    # 2. Skewness Analysis (Filtered for continuous numerical features only)
+    # 2. Skewness Analysis
     continuous_num_cols = [c for c in num_cols if df[c].nunique() > 2]
     
     skewed_cols = []
@@ -219,7 +222,6 @@ with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
         except Exception:
             continue
 
-    # Display Skewness Warnings
     if skewed_cols:
         st.markdown("##### **High Skewness Warnings**")
         for col, val in skewed_cols[:3]:
@@ -237,5 +239,5 @@ st.divider()
 # Transition Button
 col_b1, col_b2, col_b3 = st.columns([1, 2, 1])
 with col_b2:
-    if st.button("Proceed to Interactive Dashboard Studio ➔", type="primary", use_container_width=True):
+    if st.button(t("proceed_btn"), type="primary", use_container_width=True):
         st.switch_page("pages/7_Dashboard.py")
