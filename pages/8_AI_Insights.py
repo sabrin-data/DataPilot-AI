@@ -10,7 +10,19 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.metrics import r2_score, mean_squared_error, accuracy_score, f1_score
 from sklearn.preprocessing import LabelEncoder
-import streamlit as st
+from utils.translations import init_language, t
+
+# ==========================================
+# 0. Page Configuration & Language Init
+# ==========================================
+st.set_page_config(
+    page_title="AI & Machine Learning Insights Studio",
+    page_icon="🤖",
+    layout="wide"
+)
+
+# تفعيل القائمة الجانبية للغة
+init_language()
 
 # قراءة الـ CSS الموحد
 try:
@@ -18,14 +30,6 @@ try:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
-# ==========================================
-# 0. Page Configuration
-# ==========================================
-st.set_page_config(
-    page_title="AI & Machine Learning Insights Studio",
-    page_icon="🤖",
-    layout="wide"
-)
 
 st.title("🤖 AI & Machine Learning Insights Studio")
 st.write("Train predictive Machine Learning models, analyze feature importance, and detect statistical anomalies automatically.")
@@ -34,33 +38,19 @@ st.write("Train predictive Machine Learning models, analyze feature importance, 
 # 1. Check Dataset Availability
 # ==========================================
 if "df" not in st.session_state or st.session_state["df"] is None:
-    st.warning("📂 Please upload a dataset first from the Upload page.")
+    st.warning("⚠️ Please upload a dataset first in the Upload page!")
     st.stop()
 
 df = st.session_state["df"].copy()
 file_name = st.session_state.get("file_name", "Dataset")
 
-st.info(f"📁 Active Dataset: **{file_name}** | Rows: **{df.shape[0]:,}** | Columns: **{df.shape[1]}**")
+st.info(f"📁 Active Dataset: **{file_name}** | Dimensions: **{df.shape[0]:,} rows × {df.shape[1]} cols**")
 st.divider()
 
-# Classify attributes and filter out URL/High Cardinality ID columns
+# Classify attributes
 num_cols = df.select_dtypes(include=np.number).columns.tolist()
+cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
 all_cols = df.columns.tolist()
-
-# Helper to identify text/URL columns unsuitable for numeric modeling
-def is_url_or_id_col(series):
-    if series.dtype == 'object' or pd.api.types.is_string_dtype(series):
-        sample_vals = series.dropna().astype(str).str.lower()
-        if sample_vals.str.startswith(('http://', 'https://', 'www.')).any():
-            return True
-        if series.nunique() > 50 and series.nunique() / len(series) > 0.8:
-            return True
-    return False
-
-valid_target_cols = [c for c in all_cols if not is_url_or_id_col(df[c])]
-
-if not valid_target_cols:
-    valid_target_cols = all_cols
 
 # Prepare Tabs
 tab_ml, tab_anomalies = st.tabs(["🎯 Automated Predictive Machine Learning", "🚨 Isolation Forest Anomaly Detection"])
@@ -74,12 +64,7 @@ with tab_ml:
     col_setup1, col_setup2, col_setup3 = st.columns(3)
     
     with col_setup1:
-        # Default index set to a valid numeric target if available
-        default_target_idx = 0
-        if num_cols:
-            default_target_idx = valid_target_cols.index(num_cols[0]) if num_cols[0] in valid_target_cols else 0
-            
-        target_var = st.selectbox("Select Target Variable (Y)", valid_target_cols, index=default_target_idx)
+        target_var = st.selectbox("Select Target Variable (Y)", all_cols, index=len(all_cols)-1, key="target_select")
     
     # Determine task type (Regression vs Classification)
     is_numeric_target = target_var in num_cols
@@ -91,17 +76,17 @@ with tab_ml:
         default_task = "Classification"
 
     with col_setup2:
-        task_type = st.radio("Task Type Detected", ["Regression", "Classification"], index=0 if default_task == "Regression" else 1)
+        task_type = st.radio("Task Type Detected", ["Regression", "Classification"], index=0 if default_task == "Regression" else 1, key="task_radio")
         
     with col_setup3:
         if task_type == "Regression":
-            model_name = st.selectbox("Select Algorithm", ["Random Forest Regressor", "Linear Regression", "Decision Tree Regressor"])
+            model_name = st.selectbox("Select Algorithm", ["Random Forest Regressor", "Linear Regression", "Decision Tree Regressor"], key="algo_reg")
         else:
-            model_name = st.selectbox("Select Algorithm", ["Random Forest Classifier", "Logistic Regression", "Decision Tree Classifier"])
+            model_name = st.selectbox("Select Algorithm", ["Random Forest Classifier", "Logistic Regression", "Decision Tree Classifier"], key="algo_clf")
 
-    # Predictors Selection (Excluding selected Y and obvious URLs/IDs)
-    available_features = [c for c in all_cols if c != target_var and not is_url_or_id_col(df[c])]
-    selected_features = st.multiselect("Select Feature Predictors (X)", available_features, default=available_features)
+    # Predictors Selection
+    available_features = [c for c in all_cols if c != target_var]
+    selected_features = st.multiselect("Select Feature Predictors (X)", available_features, default=available_features, key="features_select")
 
     if st.button("🚀 Train Machine Learning Model", type="primary", use_container_width=True):
         if not selected_features:
@@ -111,12 +96,6 @@ with tab_ml:
                 # Data Preparation & Preprocessing
                 ml_df = df[[target_var] + selected_features].dropna(subset=[target_var]).copy()
                 
-                # Validation for Regression Target
-                if task_type == "Regression" and not pd.api.types.is_numeric_dtype(ml_df[target_var]):
-                    st.error(f"Cannot perform Regression on non-numeric target '{target_var}'. Please select 'Classification' task type or pick a numeric Target variable.")
-                    st.stop()
-
-                # Encoders Map
                 encoders = {}
 
                 # Clean & Encode Features in X
@@ -135,7 +114,7 @@ with tab_ml:
 
                 # Target Variable Encoding for Classification
                 if task_type == "Classification":
-                    if not pd.api.types.is_numeric_dtype(ml_df[target_var]):
+                    if pd.api.types.is_object_dtype(ml_df[target_var]) or pd.api.types.is_categorical_dtype(ml_df[target_var]) or pd.api.types.is_string_dtype(ml_df[target_var]):
                         target_le = LabelEncoder()
                         ml_df[target_var] = target_le.fit_transform(ml_df[target_var].astype(str))
                         encoders[target_var] = target_le
@@ -170,56 +149,64 @@ with tab_ml:
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_test)
 
-                # Save model to session state for playground
+                # Save trained parameters and metrics to session state
                 st.session_state["trained_model"] = model
                 st.session_state["model_features"] = selected_features
                 st.session_state["encoders"] = encoders
                 st.session_state["task_type"] = task_type
                 st.session_state["target_var"] = target_var
+                st.session_state["y_test"] = y_test
+                st.session_state["y_pred"] = y_pred
 
                 st.success("✅ Model Training & Evaluation Complete!")
-                st.divider()
 
-                # Model Evaluation Metrics
-                st.subheader("📊 Model Performance Evaluation")
-                m1, m2, m3 = st.columns(3)
-
-                if task_type == "Regression":
-                    r2 = r2_score(y_test, y_pred)
-                    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-                    mae = np.mean(np.abs(y_test - y_pred))
-
-                    m1.metric("R² Score (Accuracy)", f"{r2:.3f}")
-                    m2.metric("Root Mean Squared Error (RMSE)", f"{rmse:.3f}")
-                    m3.metric("Mean Absolute Error (MAE)", f"{mae:.3f}")
-
-                    # Actual vs Predicted Plot
-                    fig_res = px.scatter(x=y_test, y=y_pred, labels={'x': 'Actual Values', 'y': 'Predicted Values'}, title="Actual vs. Predicted Values")
-                    fig_res.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], y=[y_test.min(), y_test.max()], mode='lines', name='Perfect Fit', line=dict(color='red', dash='dash')))
-                    st.plotly_chart(fig_res, use_container_width=True)
-
-                else:
-                    acc = accuracy_score(y_test, y_pred)
-                    f1 = f1_score(y_test, y_pred, average="weighted")
-                    
-                    m1.metric("Model Accuracy", f"{acc * 100:.2f}%")
-                    m2.metric("Weighted F1-Score", f"{f1:.3f}")
-                    m3.metric("Test Dataset Count", f"{len(y_test):,}")
-
-                # Feature Importance Plot
-                if hasattr(model, "feature_importances_"):
-                    st.divider()
-                    st.subheader("💡 Feature Importance Analysis")
-                    importance_df = pd.DataFrame({
-                        "Feature": selected_features,
-                        "Importance": model.feature_importances_
-                    }).sort_values(by="Importance", ascending=True)
-
-                    fig_imp = px.bar(importance_df, x="Importance", y="Feature", orientation="h", title="Top Drivers & Feature Importance", color="Importance", color_continuous_scale="Blues")
-                    st.plotly_chart(fig_imp, use_container_width=True)
-
-    # Interactive Prediction Playground
+    # Display Results if model exists in session state
     if "trained_model" in st.session_state:
+        model = st.session_state["trained_model"]
+        selected_features = st.session_state["model_features"]
+        task_type = st.session_state["task_type"]
+        y_test = st.session_state["y_test"]
+        y_pred = st.session_state["y_pred"]
+        
+        st.divider()
+        st.subheader("📊 Model Performance Evaluation")
+        m1, m2, m3 = st.columns(3)
+
+        if task_type == "Regression":
+            r2 = r2_score(y_test, y_pred)
+            rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+            mae = np.mean(np.abs(y_test - y_pred))
+
+            m1.metric("R² Score (Accuracy)", f"{r2:.3f}")
+            m2.metric("Root Mean Squared Error (RMSE)", f"{rmse:.3f}")
+            m3.metric("Mean Absolute Error (MAE)", f"{mae:.3f}")
+
+            # Actual vs Predicted Plot
+            fig_res = px.scatter(x=y_test, y=y_pred, labels={'x': 'Actual Values', 'y': 'Predicted Values'}, title="Actual vs. Predicted Values")
+            fig_res.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], y=[y_test.min(), y_test.max()], mode='lines', name='Perfect Fit', line=dict(color='red', dash='dash')))
+            st.plotly_chart(fig_res, use_container_width=True)
+
+        else:
+            acc = accuracy_score(y_test, y_pred)
+            f1 = f1_score(y_test, y_pred, average="weighted")
+            
+            m1.metric("Model Accuracy", f"{acc * 100:.2f}%")
+            m2.metric("Weighted F1-Score", f"{f1:.3f}")
+            m3.metric("Test Dataset Count", f"{len(y_test):,}")
+
+        # Feature Importance Plot
+        if hasattr(model, "feature_importances_"):
+            st.divider()
+            st.subheader("💡 Feature Importance Analysis")
+            importance_df = pd.DataFrame({
+                "Feature": selected_features,
+                "Importance": model.feature_importances_
+            }).sort_values(by="Importance", ascending=True)
+
+            fig_imp = px.bar(importance_df, x="Importance", y="Feature", orientation="h", title="Top Drivers & Feature Importance", color="Importance", color_continuous_scale="Blues")
+            st.plotly_chart(fig_imp, use_container_width=True)
+
+        # Interactive Prediction Playground
         st.divider()
         st.subheader("🎮 Live Prediction Playground")
         st.write("Input custom values to generate real-time AI predictions:")
@@ -255,8 +242,8 @@ with tab_anomalies:
     st.write("Automatically identify multidimensional statistical anomalies and outliers in your numerical attributes.")
 
     if len(num_cols) >= 2:
-        anom_cols = st.multiselect("Select Numerical Attributes for Anomaly Scanning", num_cols, default=num_cols[:min(4, len(num_cols))])
-        contamination_rate = st.slider("Expected Anomaly Contamination Rate (%)", min_value=1, max_value=15, value=5) / 100.0
+        anom_cols = st.multiselect("Select Numerical Attributes for Anomaly Scanning", num_cols, default=num_cols[:min(4, len(num_cols))], key="anom_cols_select")
+        contamination_rate = st.slider("Expected Anomaly Contamination Rate (%)", min_value=1, max_value=15, value=5, key="contam_slider") / 100.0
 
         if st.button("🔍 Detect Anomalies", type="primary"):
             anom_df = df[anom_cols].dropna().copy()
@@ -265,7 +252,6 @@ with tab_anomalies:
                 iso_model = IsolationForest(contamination=contamination_rate, random_state=42)
                 preds = iso_model.fit_predict(anom_df)
                 
-                # -1 represents Anomaly, 1 represents Normal
                 anom_df["Anomaly_Status"] = np.where(preds == -1, "Anomaly 🚨", "Normal ✅")
                 
                 anom_count = (preds == -1).sum()

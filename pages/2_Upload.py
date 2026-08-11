@@ -1,17 +1,11 @@
-import streamlit as st
-import pandas as pd
-import chardet
 import io
+import chardet
+import pandas as pd
 import streamlit as st
+from utils.translations import init_language, t
 
-# قراءة الـ CSS الموحد
-try:
-    with open("assets/style.css", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-except FileNotFoundError:
-    pass
 # ==========================================
-# 0. Page Configuration & Header
+# 0. Page Configuration & Language Init
 # ==========================================
 st.set_page_config(
     page_title="Dataset Ingestion & Upload",
@@ -19,8 +13,18 @@ st.set_page_config(
     layout="wide"
 )
 
+# يقرأ اللغة المختارة ويظهر القائمة الجانبية
+init_language()
+
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
+
 st.title("📂 Dataset Ingestion & Validation")
-st.write("Upload your dataset in CSV or Excel format to initialize the automated data pipeline.")
+st.write(t("sub_title") if t("sub_title") != "sub_title" else "Upload your dataset in CSV or Excel format to initialize the automated data pipeline.")
 
 st.divider()
 
@@ -34,13 +38,15 @@ def load_dataset(uploaded_file):
     if filename.endswith(".csv"):
         # Detect character encoding automatically
         raw_bytes = uploaded_file.getvalue()
-        detected = chardet.detect(raw_bytes[:50000]) # Sample first 50KB
+        detected = chardet.detect(raw_bytes[:50000])  # Sample first 50KB
         encoding_detected = detected.get("encoding", "utf-8")
         
         # Fallback list if detected encoding fails
-        encodings_to_try = [encoding_detected, "utf-8", "latin1", "cp1252", "iso-8859-1"]
+        encodings_to_try = [encoding_detected, "utf-8", "utf-8-sig", "latin1", "cp1252", "iso-8859-1"]
         
         for enc in encodings_to_try:
+            if not enc:
+                continue
             try:
                 uploaded_file.seek(0)
                 df = pd.read_csv(uploaded_file, encoding=enc)
@@ -79,13 +85,14 @@ if uploaded_file is not None:
         st.session_state["df"] = df.copy()
         st.session_state["original_df"] = df.copy()
         st.session_state["file_name"] = filename
+        st.session_state["cleaning_log"] = []  # إعادة إعادة ضبط سجل التنظيف للملف الجديد
 
         st.success(f"🎉 Dataset **'{filename}'** successfully uploaded and loaded into active memory!")
 
         # Metadata Quick Metrics
         m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-        m_col1.metric("📊 Total Rows", f"{len(df):,}")
-        m_col2.metric("📊 Total Columns", df.shape[1])
+        m_col1.metric(t("total_rows") if t("total_rows") != "total_rows" else "📊 Total Rows", f"{len(df):,}")
+        m_col2.metric(t("total_columns") if t("total_columns") != "total_columns" else "📊 Total Columns", df.shape[1])
         m_col3.metric("🔤 Detected Encoding", used_encoding)
         m_col4.metric("💾 Memory Footprint", f"{df.memory_usage(deep=True).sum() / 1024:.1f} KB")
 
@@ -130,4 +137,4 @@ else:
         if st.button("Continue with Active Dataset ➔", type="secondary"):
             st.switch_page("pages/3_Data_Overview.py")
     else:
-        st.warning("👈 Please upload a file above to unlock the analysis pipeline.")
+        st.warning(t("no_dataset") if t("no_dataset") != "no_dataset" else "👈 Please upload a file above to unlock the analysis pipeline.")

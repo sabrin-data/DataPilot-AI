@@ -1,7 +1,19 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import streamlit as st
+from utils.translations import init_language, t
+
+# ==========================================
+# 0. Page Configuration & Language Init
+# ==========================================
+st.set_page_config(
+    page_title="Feature Engineering Studio",
+    page_icon="⚙️",
+    layout="wide"
+)
+
+# يقرأ اللغة المختارة ويظهر القائمة الجانبية
+init_language()
 
 # قراءة الـ CSS الموحد
 try:
@@ -9,14 +21,6 @@ try:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
-# ==========================================
-# 0. Page Configuration
-# ==========================================
-st.set_page_config(
-    page_title="Feature Engineering Studio",
-    page_icon="⚙️",
-    layout="wide"
-)
 
 st.title("⚙️ Advanced Feature Engineering Studio")
 st.write("Construct new predictive indicators, apply mathematical transformations, bin continuous variables, and encode features.")
@@ -97,7 +101,12 @@ with st.expander("📦 Module 2: Feature Binning / Quantilization (Continuous to
                 else:
                     labels = [f"Group_{i+1}" for i in range(num_bins)]
 
-                df[bin_col_name] = pd.qcut(df[bin_target], q=num_bins, labels=labels, duplicates="drop")
+                # Utilizes qcut with fallback to cut for safe equal-interval binning
+                try:
+                    df[bin_col_name] = pd.qcut(df[bin_target], q=num_bins, labels=labels, duplicates="drop")
+                except ValueError:
+                    df[bin_col_name] = pd.cut(df[bin_target], bins=num_bins, labels=labels)
+
                 st.session_state["df"] = df
                 st.success(f"🎉 Created binned column `{bin_col_name}`!")
                 st.rerun()

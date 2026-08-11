@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.translations import init_language, t
 
 # ==========================================
 # 0. Page Configuration
@@ -10,14 +11,45 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 1. Load Custom CSS from Assets
+# 🌐 1. Initialize Language & Sidebar Selector
+init_language()
+
+# 🎨 2. Load Custom CSS from Assets
 try:
     with open("assets/style.css", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
 
-# 🖼️ 2. Sidebar Logo & Branding (DataPilot AI)
+# 🔄 3. RTL Page Direction Handling (Dynamic based on selected language)
+if st.session_state.get("lang") == "ar":
+    st.markdown("""
+        <style>
+            .stApp {
+                direction: RTL;
+                text-align: right;
+            }
+            .cap-num {
+                margin-right: 0px !important;
+                margin-left: 10px !important;
+            }
+            .card-1, .card-2, .card-3, .card-4, .card-5, .card-6, .card-7, .card-8, .card-9 {
+                border-left: none !important;
+                border-right: 5px solid !important;
+            }
+            .card-1 { border-right-color: #3B82F6 !important; }
+            .card-2 { border-right-color: #22C55E !important; }
+            .card-3 { border-right-color: #EF4444 !important; }
+            .card-4 { border-right-color: #F59E0B !important; }
+            .card-5 { border-right-color: #8B5CF6 !important; }
+            .card-6 { border-right-color: #06B6D4 !important; }
+            .card-7 { border-right-color: #EC4899 !important; }
+            .card-8 { border-right-color: #14B8A6 !important; }
+            .card-9 { border-right-color: #A855F7 !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
+# 🖼️ 4. Sidebar Logo & Branding (DataPilot AI)
 with st.sidebar:
     try:
         st.image("assets/logo.png", use_container_width=True)
@@ -147,7 +179,7 @@ with head_col1:
 
 with head_col2:
     st.markdown("<div class='main-title'>DataPilot AI</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sub-title'>An Enterprise-Grade Automated Data Sanitation, Profiling, Interactive Analytics, and AI Reporting Engine.</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='sub-title'>{t('sub_title') if t('sub_title') != 'sub_title' else 'An Enterprise-Grade Automated Data Sanitation, Profiling, Interactive Analytics, and AI Reporting Engine.'}</div>", unsafe_allow_html=True)
 
 # Active File Banner
 col_status, col_btn = st.columns([3, 1])
@@ -158,7 +190,7 @@ with col_status:
         df_shape = st.session_state["df"].shape
         st.success(f"📁 **Active Dataset:** {file_name} ({df_shape[0]:,} rows × {df_shape[1]} columns)")
     else:
-        st.info("📂 **No Active Dataset:** Upload a CSV or Excel file to begin analysis.")
+        st.info(t("no_dataset") if t("no_dataset") != "no_dataset" else "📂 **No Active Dataset:** Upload a CSV or Excel file to begin analysis.")
 
 with col_btn:
     if st.button("📌 Upload Dataset ➔", type="primary", use_container_width=True):

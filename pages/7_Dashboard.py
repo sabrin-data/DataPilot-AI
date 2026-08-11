@@ -1,16 +1,20 @@
+import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import streamlit as st
+from utils.translations import init_language, t
 
 # ==========================================
-# 0. Page Configuration
+# 0. Page Configuration (Must be First)
 # ==========================================
 st.set_page_config(
-    page_title="DataPilot AI - Executive Dashboard", 
+    page_title="Executive Dashboard - DataPilot AI", 
     page_icon="📊",
     layout="wide"
 )
+
+# يقرأ اللغة المختارة ويظهر القائمة الجانبية
+init_language()
 
 # قراءة الـ CSS الموحد
 try:
@@ -21,37 +25,50 @@ except FileNotFoundError:
 
 st.title("📊 Executive Dashboard & AI Assistant")
 
-# التأكد من وجود البيانات في الجلسة (st.session_state)
+# ==========================================
+# 1. Check Dataset Availability
+# ==========================================
 if "df" not in st.session_state or st.session_state["df"] is None:
     st.warning("⚠️ Please upload a dataset first in the Upload page!")
     st.stop()
 
 df = st.session_state["df"]
 
+# تصنيف الأعمدة
+categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+
 # ==========================================
-# 1. SIDEBAR: EXCEL-LIKE SLICERS & FILTERS
+# 2. SIDEBAR: EXCEL-LIKE SLICERS & FILTERS
 # ==========================================
 st.sidebar.markdown("### 🎛️ Executive Slicers & Filters")
 filtered_df = df.copy()
 
-# فلترة تلقائية للأعمدة النصية (Categorical Slicers)
-categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-
-for col in categorical_cols[:3]: # استخدام أول 3 أعمدة نصية كسلايسرز
-    unique_vals = df[col].dropna().unique().tolist()
-    selected_vals = st.sidebar.multiselect(f"Filter by {col}", options=unique_vals, default=unique_vals)
-    if selected_vals:
-        filtered_df = filtered_df[filtered_df[col].isin(selected_vals)]
+# فلترة تلقائية لأول 3 أعمدة نصية
+if categorical_cols:
+    for col in categorical_cols[:3]:
+        unique_vals = df[col].dropna().unique().tolist()
+        selected_vals = st.sidebar.multiselect(
+            f"Filter by {col}", 
+            options=unique_vals, 
+            default=unique_vals,
+            key=f"filter_{col}"
+        )
+        if selected_vals:
+            filtered_df = filtered_df[filtered_df[col].isin(selected_vals)]
+else:
+    st.sidebar.info("No categorical columns available for slicing.")
 
 # ==========================================
-# 2. TOP KPIs SECTION
+# 3. TOP KPIs SECTION
 # ==========================================
 st.markdown("### 📈 Key Performance Indicators (KPIs)")
-numeric_cols = filtered_df.select_dtypes(include=['number']).columns.tolist()
 
-if numeric_cols:
-    kpi_cols = st.columns(min(len(numeric_cols), 4))
-    for i, col_name in enumerate(numeric_cols[:4]):
+if numeric_cols and not filtered_df.empty:
+    kpi_count = min(len(numeric_cols), 4)
+    kpi_cols = st.columns(kpi_count)
+    
+    for i, col_name in enumerate(numeric_cols[:kpi_count]):
         with kpi_cols[i]:
             total_val = filtered_df[col_name].sum()
             avg_val = filtered_df[col_name].mean()
@@ -60,100 +77,115 @@ if numeric_cols:
                 value=f"{total_val:,.1f}",
                 delta=f"Avg: {avg_val:,.1f}"
             )
+else:
+    st.info("No numeric data available to display KPIs.")
 
 st.divider()
 
 # ==========================================
-# 3. EXECUTIVE VISUAL BREAKDOWN (الرسومات البيانية)
+# 4. EXECUTIVE VISUAL BREAKDOWN
 # ==========================================
 st.markdown("### 📉 Executive Visual Breakdown")
 
-col1, col2 = st.columns(2)
+if not filtered_df.empty:
+    col1, col2 = st.columns(2)
 
-with col1:
-    if len(categorical_cols) > 0 and len(numeric_cols) > 0:
-        avg_df = filtered_df.groupby(categorical_cols[0], as_index=False)[numeric_cols[0]].mean()
-        
-        fig1 = px.bar(
-            avg_df, 
-            x=categorical_cols[0], 
-            y=numeric_cols[0], 
-            title=f"Average {numeric_cols[0].replace('_', ' ')} by {categorical_cols[0].title()}",
-            color=categorical_cols[0]
-        )
-        fig1.update_layout(
-            xaxis_tickangle=-45,
-            showlegend=False,
-            margin=dict(l=20, r=20, t=40, b=80)
-        )
-        st.plotly_chart(fig1, use_container_width=True)
-
-with col2:
-    if len(categorical_cols) > 0:
-        counts = filtered_df[categorical_cols[0]].value_counts().reset_index()
-        counts.columns = [categorical_cols[0], 'count']
-        
-        if len(counts) > 10:
-            top_10 = counts.iloc[:10]
-            others_count = counts.iloc[10:]['count'].sum()
-            others_df = pd.DataFrame([{categorical_cols[0]: 'Other Brands', 'count': others_count}])
-            counts_display = pd.concat([top_10, others_df], ignore_index=True)
+    with col1:
+        if categorical_cols and numeric_cols:
+            avg_df = filtered_df.groupby(categorical_cols[0], as_index=False)[numeric_cols[0]].mean()
+            
+            fig1 = px.bar(
+                avg_df, 
+                x=categorical_cols[0], 
+                y=numeric_cols[0], 
+                title=f"Average {numeric_cols[0].replace('_', ' ')} by {categorical_cols[0].title()}",
+                color=categorical_cols[0]
+            )
+            fig1.update_layout(
+                xaxis_tickangle=-45,
+                showlegend=False,
+                margin=dict(l=20, r=20, t=40, b=80)
+            )
+            st.plotly_chart(fig1, use_container_width=True)
         else:
-            counts_display = counts
+            st.info("Bar Chart requires at least 1 Categorical & 1 Numeric column.")
 
-        fig2 = px.pie(
-            counts_display, 
-            names=categorical_cols[0], 
-            values='count',
-            title=f"Top Distribution of {categorical_cols[0].title()}",
-            hole=0.4
+    with col2:
+        if categorical_cols:
+            counts = filtered_df[categorical_cols[0]].value_counts().reset_index()
+            counts.columns = [categorical_cols[0], 'count']
+            
+            if len(counts) > 10:
+                top_10 = counts.iloc[:10]
+                others_count = counts.iloc[10:]['count'].sum()
+                others_df = pd.DataFrame([{categorical_cols[0]: 'Others', 'count': others_count}])
+                counts_display = pd.concat([top_10, others_df], ignore_index=True)
+            else:
+                counts_display = counts
+
+            fig2 = px.pie(
+                counts_display, 
+                names=categorical_cols[0], 
+                values='count',
+                title=f"Distribution of {categorical_cols[0].title()}",
+                hole=0.4
+            )
+            fig2.update_traces(textposition='inside', textinfo='percent+label')
+            fig2.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.info("Pie Chart requires a Categorical column.")
+
+    # Scatter Plot
+    if len(numeric_cols) >= 2:
+        fig3 = px.scatter(
+            filtered_df, 
+            x=numeric_cols[0], 
+            y=numeric_cols[1], 
+            color=categorical_cols[0] if categorical_cols else None,
+            title=f"{numeric_cols[0].replace('_', ' ')} vs {numeric_cols[1].replace('_', ' ')} Analysis"
         )
-        fig2.update_traces(textposition='inside', textinfo='percent+label')
-        fig2.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-        st.plotly_chart(fig2, use_container_width=True)
-
-if len(numeric_cols) >= 2:
-    fig3 = px.scatter(
-        filtered_df, 
-        x=numeric_cols[0], 
-        y=numeric_cols[1], 
-        color=categorical_cols[0] if categorical_cols else None,
-        title=f"{numeric_cols[0].replace('_', ' ')} vs {numeric_cols[1].replace('_', ' ')} Analysis"
-    )
-    fig3.update_layout(margin=dict(l=20, r=20, t=40, b=40))
-    st.plotly_chart(fig3, use_container_width=True)
+        fig3.update_layout(margin=dict(l=20, r=20, t=40, b=40))
+        st.plotly_chart(fig3, use_container_width=True)
+else:
+    st.warning("No data available for charts based on current filter selections.")
 
 st.divider()
 
 # ==========================================
-# 4. AI DATA ASSISTANT (مساعد الذكاء الاصطناعي)
+# 5. AI DATA ASSISTANT (Copilot)
 # ==========================================
 st.markdown("### 🤖 DataPilot AI Copilot (Ask Your Data)")
 st.caption("اكتب أي سؤال يتعلق بالبيانات المفلترة وسيقوم الذكاء الاصطناعي بتحليلها وإجابتك فوراً!")
 
-user_query = st.text_input("💬 Ask a question about this dashboard (e.g., Which brand has the highest speed? Why did battery capacity drop?):")
+user_query = st.text_input("💬 Ask a question about this dashboard (e.g., Which category has the highest average?):")
 
 if user_query:
     with st.spinner("🤖 Analyzing data and generating insights..."):
         query_lower = user_query.lower()
-        
         st.markdown("#### 💡 AI Response:")
         
-        if "highest" in query_lower or "best" in query_lower or "أعلى" in query_lower or "أفضل" in query_lower:
+        if filtered_df.empty:
+            st.error("The filtered dataset is currently empty. Please adjust your filters.")
+        elif any(k in query_lower for k in ["highest", "best", "أعلى", "أفضل", "최고"]):
             if numeric_cols and categorical_cols:
-                top_row = filtered_df.groupby(categorical_cols[0])[numeric_cols[0]].mean().idxmax()
-                top_val = filtered_df.groupby(categorical_cols[0])[numeric_cols[0]].mean().max()
-                st.success(f"📌 **Analysis Result:** The highest performance in `{numeric_cols[0]}` belongs to **{top_row}** with an average value of **{top_val:,.2f}**.")
+                grp = filtered_df.groupby(categorical_cols[0])[numeric_cols[0]].mean()
+                if not grp.empty:
+                    top_row = grp.idxmax()
+                    top_val = grp.max()
+                    st.success(f"📌 **Analysis Result:** The highest average in `{numeric_cols[0]}` belongs to **{top_row}** with a value of **{top_val:,.2f}**.")
             else:
-                st.info("The highest values are concentrated in the upper percentiles of your numeric metrics.")
+                st.info("The highest values are concentrated in the top values of your numeric columns.")
                 
-        elif "lowest" in query_lower or "drop" in query_lower or "انخفاض" in query_lower or "أقل" in query_lower:
+        elif any(k in query_lower for k in ["lowest", "drop", "انخفاض", "أقل", "최저"]):
             if numeric_cols and categorical_cols:
-                low_row = filtered_df.groupby(categorical_cols[0])[numeric_cols[0]].mean().idxmin()
-                low_val = filtered_df.groupby(categorical_cols[0])[numeric_cols[0]].mean().min()
-                st.warning(f"📉 **Analysis Result:** The main drop or lowest value in `{numeric_cols[0]}` is observed in **{low_row}** with an average of **{low_val:,.2f}**. Recommended to investigate this category.")
+                grp = filtered_df.groupby(categorical_cols[0])[numeric_cols[0]].mean()
+                if not grp.empty:
+                    low_row = grp.idxmin()
+                    low_val = grp.min()
+                    st.warning(f"📉 **Analysis Result:** The lowest value/drop in `{numeric_cols[0]}` is observed in **{low_row}** with an average of **{low_val:,.2f}**.")
             else:
-                st.warning("Noticeable drops occur where missing values or minimum thresholds are met in the dataset.")
+                st.warning("Noticeable drops occur at lower numeric thresholds.")
                 
         else:
-            st.info(f"📊 **Executive Insight for '{user_query}':**\nBased on current filters, your dataset contains **{len(filtered_df)} total records**. The overall average across key metrics shows steady distribution, with top variance identified in `{numeric_cols[0] if numeric_cols else 'selected columns'}`.")
+            st.info(f"📊 **Executive Insight for '{user_query}':**\nBased on current filters, your active dataset contains **{len(filtered_df):,} total records**. Primary distribution focuses on `{categorical_cols[0] if categorical_cols else 'selected columns'}`.")

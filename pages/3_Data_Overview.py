@@ -3,16 +3,10 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
+from utils.translations import init_language, t
 
-# قراءة الـ CSS الموحد
-try:
-    with open("assets/style.css", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-except FileNotFoundError:
-    pass
 # ==========================================
-# 0. Page Configuration
+# 0. Page Configuration & Language Init
 # ==========================================
 st.set_page_config(
     page_title="Data Overview & Health Profile",
@@ -20,14 +14,24 @@ st.set_page_config(
     layout="wide"
 )
 
+# يقرأ اللغة المختارة ويظهر القائمة الجانبية
+init_language()
+
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
+
 st.title("📋 Automated Data Overview & Health Audit")
-st.write("Comprehensive dataset diagnostics, automated statistical profiling, and AI data health assessment.")
+st.write(t("sub_title") if t("sub_title") != "sub_title" else "Comprehensive dataset diagnostics, automated statistical profiling, and AI data health assessment.")
 
 # ==========================================
 # 1. Check Dataset Availability
 # ==========================================
 if "df" not in st.session_state or st.session_state["df"] is None:
-    st.warning("📂 Please upload a dataset first from the Upload page.")
+    st.warning(t("no_dataset") if t("no_dataset") != "no_dataset" else "📂 Please upload a dataset first from the Upload page.")
     st.stop()
 
 df = st.session_state["df"]
@@ -49,8 +53,8 @@ with st.expander("📂 Section 1: Dataset Information & Dtypes Breakdown", expan
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("📄 File Name", file_name)
-    col2.metric("📊 Total Rows", f"{rows:,}")
-    col3.metric("📊 Total Columns", cols)
+    col2.metric(t("total_rows") if t("total_rows") != "total_rows" else "📊 Total Rows", f"{rows:,}")
+    col3.metric(t("total_columns") if t("total_columns") != "total_columns" else "📊 Total Columns", cols)
     col4.metric("💾 Memory Footprint", f"{file_size_mb:.2f} MB")
 
     st.divider()
@@ -90,7 +94,7 @@ with st.expander("⭐ Section 2: Data Quality & Health Score", expanded=True):
     st.progress(quality_score / 100)
 
     q_col1, q_col2, q_col3, q_col4 = st.columns(4)
-    q_col1.metric("Missing Values", f"{missing_total:,} ({missing_pct:.1f}%)")
+    q_col1.metric(t("missing_values") if t("missing_values") != "missing_values" else "Missing Values", f"{missing_total:,} ({missing_pct:.1f}%)")
     q_col2.metric("Duplicate Rows", f"{duplicates:,} ({dup_pct:.1f}%)")
     q_col3.metric("Empty Columns", empty_cols_cnt)
     q_col4.metric("Constant Columns", constant_cols_cnt)

@@ -2,7 +2,19 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-import streamlit as st
+from utils.translations import init_language, t
+
+# ==========================================
+# 0. Page Configuration & Language Init
+# ==========================================
+st.set_page_config(
+    page_title="Data Sanitation Engine",
+    page_icon="🧹",
+    layout="wide"
+)
+
+# يقرأ اللغة المختارة ويظهر القائمة الجانبية
+init_language()
 
 # قراءة الـ CSS الموحد
 try:
@@ -10,14 +22,6 @@ try:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
-# ==========================================
-# 0. Page Configuration
-# ==========================================
-st.set_page_config(
-    page_title="Data Sanitation Engine",
-    page_icon="🧹",
-    layout="wide"
-)
 
 st.title("🧹 Advanced Data Cleaning & Sanitation Engine")
 st.write("Comprehensive data sanitation, text standardization, currency parsing, and outlier treatment.")
@@ -232,7 +236,6 @@ if st.button("🚀 Execute Comprehensive Cleaning", type="primary", use_containe
                 s = s.str.title()
 
             if standardize_common:
-                # Using Inline flag (?i) for Case-Insensitive Matching safely in Pandas
                 gender_map = {r"(?i)^(male|m|males)$": "Male", r"(?i)^(female|f|females)$": "Female"}
                 bool_map = {r"(?i)^(yes|y|true|t|1)$": "Yes", r"(?i)^(no|n|false|f|0)$": "No"}
                 country_map = {r"(?i)^(usa|u\.s\.a|united states|us)$": "United States", r"(?i)^(uk|u\.k|united kingdom)$": "United Kingdom"}

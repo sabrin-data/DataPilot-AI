@@ -3,14 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from utils.translations import init_language, t  # <--- استدعاء نظام الترجمة
-
-# قراءة الـ CSS الموحد
-try:
-    with open("assets/style.css", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-except FileNotFoundError:
-    pass
+from utils.translations import init_language, t
 
 # ==========================================
 # 0. Page Configuration & Language Init
@@ -23,6 +16,13 @@ st.set_page_config(
 
 # تفعيل القائمة الجانبية لاختيار اللغة
 init_language()
+
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
 
 st.title(t("title"))
 st.write(t("sub_title"))

@@ -4,15 +4,20 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
+from utils.translations import init_language, t
 
 # ==========================================
-# 0. Page Configuration
+# 0. Page Configuration & Language Init
 # ==========================================
 st.set_page_config(
     page_title="Executive Report Generator",
     page_icon="📄",
     layout="wide"
 )
+
+# يقرأ اللغة المختارة ويظهر القائمة الجانبية
+init_language()
 
 # قراءة الـ CSS الموحد
 try:
@@ -22,13 +27,13 @@ except FileNotFoundError:
     pass
 
 st.title("📄 Executive Report Generator & Export Studio")
-st.write("Synthesize dataset metrics, cleaning logs, statistical insights, and visual dashboards into a comprehensive report.")
+st.write(t("sub_title") if t("sub_title") != "sub_title" else "Synthesize dataset metrics, cleaning logs, statistical insights, and visual dashboards into a comprehensive report.")
 
 # ==========================================
 # 1. Check Dataset Availability
 # ==========================================
 if "df" not in st.session_state or st.session_state["df"] is None:
-    st.warning("📂 Please upload a dataset first from the Upload page.")
+    st.warning(t("no_dataset") if t("no_dataset") != "no_dataset" else "📂 Please upload a dataset first from the Upload page.")
     st.stop()
 
 df = st.session_state["df"].copy()
@@ -41,9 +46,9 @@ cleaning_log = st.session_state.get("cleaning_log", [])
 st.subheader("📌 Executive Dataset Overview")
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Rows", f"{len(df):,}")
-col2.metric("Total Columns", f"{df.shape[1]}")
-col3.metric("Missing Values", f"{df.isnull().sum().sum():,}")
+col1.metric(t("total_rows") if t("total_rows") != "total_rows" else "Total Rows", f"{len(df):,}")
+col2.metric(t("total_columns") if t("total_columns") != "total_columns" else "Total Columns", f"{df.shape[1]}")
+col3.metric(t("missing_values") if t("missing_values") != "missing_values" else "Missing Values", f"{df.isnull().sum().sum():,}")
 col4.metric("Memory Usage", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
 
 st.divider()
@@ -59,7 +64,7 @@ with col_cfg1:
     report_title = st.text_input("Report Title", value=f"Data Insight Analysis Report - {file_name}")
     author_name = st.text_input("Prepared By", value="DataPilot AI Analyst")
     include_summary = st.checkbox("Include Summary Statistics Table", value=True)
-    include_charts = st.checkbox("Include Dashboard Visual Charts", value=True) # خيار إضافة الرسوم البيانية
+    include_charts = st.checkbox("Include Dashboard Visual Charts", value=True)
 
 with col_cfg2:
     include_logs = st.checkbox("Include Data Sanitation Audit Logs", value=True)
@@ -69,12 +74,17 @@ with col_cfg2:
 st.divider()
 
 # ==========================================
-# 📄 Section 3: HTML Report Generator Function (مع الرسوم البيانية)
+# 📄 Section 3: HTML Report Generator Function
 # ==========================================
 def generate_html_report():
     num_cols = df.select_dtypes(include=np.number).columns.tolist()
     cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
     
+    # تحديد اتجاه الصفحة واللغة في تقرير الـ HTML بمرونة
+    current_lang = st.session_state.get("lang", "en")
+    text_dir = "rtl" if current_lang == "ar" else "ltr"
+    align_dir = "right" if current_lang == "ar" else "left"
+
     # 1. Summary stats HTML
     summary_html = ""
     if include_summary and num_cols:
@@ -103,21 +113,21 @@ def generate_html_report():
         else:
             missing_html = "<h3>Missing Values Breakdown</h3><p>✅ Complete Dataset: No missing values detected!</p>"
 
-    # 4. Dashboard Charts HTML (توليد الرسوم البيانية)
+    # 4. Dashboard Charts HTML
     charts_html = ""
     if include_charts:
         charts_html += "<h3>Executive Dashboard Visualizations</h3>"
         
-        # Chart 1: Bar Chart
-        if cat_cols and num_cols:
+        # Chart 1: Bar Chart (فحص أمان لعدم الحدوث Index Error)
+        if len(cat_cols) > 0 and len(num_cols) > 0:
             avg_df = df.groupby(cat_cols[0], as_index=False)[num_cols[0]].mean()
             fig1 = px.bar(avg_df, x=cat_cols[0], y=num_cols[0], title=f"Average {num_cols[0]} by {cat_cols[0]}")
             charts_html += fig1.to_html(full_html=False, include_plotlyjs='cdn')
             
         # Chart 2: Pie Chart
-        if cat_cols:
+        if len(cat_cols) > 0:
             fig2 = px.pie(df, names=cat_cols[0], title=f"Distribution of {cat_cols[0]}")
-            charts_html += fig2.to_html(full_html=False, include_plotlyjs=False)
+            charts_html += fig2.to_html(full_html=False, include_plotlyjs='cdn')
 
     # 5. Data Sample HTML
     sample_html = ""
@@ -127,16 +137,18 @@ def generate_html_report():
     # Complete HTML Document
     html_content = f"""
     <!DOCTYPE html>
-    <html>
+    <html dir="{text_dir}">
     <head>
         <meta charset="UTF-8">
         <title>{report_title}</title>
         <style>
             body {{
-                font-family: Arial, sans-serif;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 margin: 40px;
                 background-color: #f9f9f9;
                 color: #333;
+                direction: {text_dir};
+                text-align: {align_dir};
             }}
             .header {{
                 text-align: center;
@@ -185,7 +197,7 @@ def generate_html_report():
             .styled-table th {{
                 background-color: #0066cc;
                 color: #ffffff;
-                text-align: left;
+                text-align: {align_dir};
                 padding: 12px 15px;
             }}
             .styled-table td {{
@@ -277,6 +289,6 @@ st.divider()
 
 # Interactive Preview of HTML Report
 with st.expander("👁️ Live Preview Generated HTML Executive Report", expanded=False):
-    st.components.v1.html(html_report, height=600, scrolling=True)
+    components.html(html_report, height=600, scrolling=True)
 
 st.success("🎉 Report Studio Ready!")

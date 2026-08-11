@@ -1,17 +1,11 @@
-import streamlit as st
 import sys
 import platform
 import pandas as pd
 import streamlit as st
+from utils.translations import init_language, t
 
-# قراءة الـ CSS الموحد
-try:
-    with open("assets/style.css", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-except FileNotFoundError:
-    pass
 # ==========================================
-# 0. Page Configuration
+# 0. Page Configuration & Language Init
 # ==========================================
 st.set_page_config(
     page_title="Application Settings",
@@ -19,8 +13,18 @@ st.set_page_config(
     layout="wide"
 )
 
+# يقرأ اللغة المختارة ويظهر القائمة الجانبية
+init_language()
+
+# قراءة الـ CSS الموحد
+try:
+    with open("assets/style.css", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
+
 st.title("⚙️ Application Settings & Configuration")
-st.write("Manage app preferences, session cache, system diagnostics, and API keys.")
+st.write(t("sub_title") if t("sub_title") != "sub_title" else "Manage app preferences, session cache, system diagnostics, and API keys.")
 
 # ==========================================
 # 1. App Preferences & UI Settings
@@ -116,14 +120,20 @@ with col_mem1:
     if "df" in st.session_state and st.session_state["df"] is not None:
         st.info(f"📂 Active Loaded Dataset: **{st.session_state.get('file_name', 'Unknown')}** ({len(st.session_state['df']):,} rows)")
     else:
-        st.warning("📂 No active dataset currently loaded in session state.")
+        st.warning(t("no_dataset") if t("no_dataset") != "no_dataset" else "📂 No active dataset currently loaded in session state.")
 
 with col_mem2:
     if st.button("🗑️ Clear Cache & Reset All Session Data", type="primary", use_container_width=True):
+        # حفظ لغة المستخدم الحالية كي لا تضيع بعد المسح
+        current_lang = st.session_state.get("lang", "en")
+        
+        # مسح الذاكرة
         st.session_state.clear()
         st.cache_data.clear()
-        if st.session_state.get("enable_toasts", True):
-            st.toast("Cache and session completely reset!", icon="🧹")
+        
+        # إعادة اللغة المحفوظة
+        st.session_state["lang"] = current_lang
+        
         st.success("Session state and cache completely reset!")
         st.rerun()
 
@@ -139,7 +149,7 @@ sys_info = {
     "Python Version": sys.version.split()[0],
     "Streamlit Version": st.__version__,
     "Pandas Version": pd.__version__,
-    "Processor": platform.processor()
+    "Processor": platform.processor() or "Standard CPU"
 }
 
 sys_df = pd.DataFrame(list(sys_info.items()), columns=["Component", "Details"])

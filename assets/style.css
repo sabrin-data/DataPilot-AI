@@ -4,7 +4,25 @@
     font-family: 'Inter', sans-serif;
 }
 
-/* Sidebar Background & Border */
+/* ==========================================
+   🌐 دعم اتجاه النص للغة العربية والـ RTL تلقائياً
+   ========================================== */
+
+/* دعم اتجاه النص للغة العربية تلقائياً */
+html[dir="rtl"], body[dir="rtl"] {
+    text-align: right;
+    direction: rtl;
+}
+
+/* تنسيق الجداول والسايدبار لتتماشى مع الاتجاه */
+[data-testid="stSidebar"] {
+    text-align: left; /* الحفاظ على القائمة الجانبية مرتبة */
+}
+
+/* ==========================================
+   🎨 Sidebar Background & Border
+   ========================================== */
+
 section[data-testid="stSidebar"] {
     background-color: #F8FAFC !important;
     border-right: 1px solid #E2E8F0 !important;
