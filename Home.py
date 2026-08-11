@@ -78,20 +78,40 @@ st.markdown("""
             color: #2563EB !important;
         }
 
-        /* Modern Title Styling */
-        .main-title {
+        /* Modern Title Styling (Hero Section) */
+        .hero-title {
             font-size: 40px;
             font-weight: 800;
             background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 50%, #8B5CF6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            line-height: 1.25;
         }
-        .sub-title {
+        .hero-subtitle {
             font-size: 17px;
             color: #475569;
             margin-bottom: 25px;
             font-weight: 500;
+            line-height: 1.6;
+        }
+
+        /* 🚀 Custom Primary Button Styling (Blue Modern Accent) */
+        div.stButton > button[kind="primary"] {
+            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+            color: white !important;
+            font-size: 17px !important;
+            font-weight: 700 !important;
+            padding: 10px 24px !important;
+            border-radius: 12px !important;
+            border: none !important;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+            transition: all 0.3s ease !important;
+        }
+        div.stButton > button[kind="primary"]:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5) !important;
+            background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%) !important;
         }
         
         /* General Card Base */
@@ -158,9 +178,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🚀 Home / Landing Page Interface (مع اللوجو الرئيسي)
+# 🚀 Home / Landing Page Interface (Value Proposition First)
 # ==========================================
-head_col1, head_col2 = st.columns([1, 5])
+head_col1, head_col2 = st.columns([1, 5.5])
 
 with head_col1:
     try:
@@ -169,11 +189,15 @@ with head_col1:
         pass
 
 with head_col2:
-    st.markdown("<div class='main-title'>DataPilot AI</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='sub-title'>{t('sub_title') if t('sub_title') != 'sub_title' else 'An Enterprise-Grade Automated Data Sanitation, Profiling, Interactive Analytics, and AI Reporting Engine.'}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-title'>Turn your raw data into insights in minutes.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-subtitle'>Upload your CSV or Excel file and let DataPilot AI clean, analyze, visualize, and report your data automatically.</div>", unsafe_allow_html=True)
 
-# Active File Banner
-col_status, col_btn = st.columns([3, 1])
+# 🚀 Action Button & Active File Banner
+col_btn, col_status = st.columns([1.5, 3])
+
+with col_btn:
+    if st.button("🚀 Upload Your Dataset", type="primary", use_container_width=True):
+        st.switch_page("pages/2_Upload.py")
 
 with col_status:
     if "df" in st.session_state and st.session_state["df"] is not None:
@@ -181,15 +205,13 @@ with col_status:
         df_shape = st.session_state["df"].shape
         st.success(f"📁 **Active Dataset:** {file_name} ({df_shape[0]:,} rows × {df_shape[1]} columns)")
     else:
-        st.info(t("no_dataset") if t("no_dataset") != "no_dataset" else "📂 **No Active Dataset:** Upload a CSV or Excel file to begin analysis.")
-
-with col_btn:
-    if st.button("📌 Upload Dataset ➔", type="primary", use_container_width=True):
-        st.switch_page("pages/2_Upload.py")
+        st.info("📂 **No Active Dataset:** Click above to upload a CSV or Excel file to start.")
 
 st.divider()
 
-# Platform Capabilities & Data Pipeline Section
+# ==========================================
+# 🎨 Platform Capabilities & Data Pipeline Section (Modules Second)
+# ==========================================
 st.subheader("🎨 Explore Platform Modules & Pipeline")
 
 # --- Row 1 (Steps 1, 2, 3) ---
