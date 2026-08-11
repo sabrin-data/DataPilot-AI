@@ -78,9 +78,23 @@ st.markdown("""
             color: #2563EB !important;
         }
 
+        /* Brand Badge Styling */
+        .brand-badge {
+            background-color: #eef2ff;
+            color: #4f46e5;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid #c7d2fe;
+            display: inline-block;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(79, 70, 229, 0.08);
+        }
+
         /* Modern Title Styling (Hero Section) */
         .hero-title {
-            font-size: 40px;
+            font-size: 38px;
             font-weight: 800;
             background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 50%, #8B5CF6 100%);
             -webkit-background-clip: text;
@@ -89,7 +103,7 @@ st.markdown("""
             line-height: 1.25;
         }
         .hero-subtitle {
-            font-size: 17px;
+            font-size: 16px;
             color: #475569;
             margin-bottom: 25px;
             font-weight: 500;
@@ -180,15 +194,22 @@ st.markdown("""
 # ==========================================
 # 🚀 Home / Landing Page Interface (Value Proposition First)
 # ==========================================
-head_col1, head_col2 = st.columns([1, 5.5])
+head_col1, head_col2 = st.columns([1, 5.5], gap="medium")
 
 with head_col1:
     try:
-        st.image("assets/logo.png", width=110)
+        st.image("assets/logo.png", use_container_width=True)
     except Exception:
         pass
 
 with head_col2:
+    # 📌 إضافة شريط البراند المميز أعلا العنوان
+    st.markdown("""
+        <div class='brand-badge'>
+            🚀 DataPilot AI — AI-Powered Data Analysis Platform
+        </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("<div class='hero-title'>Turn your raw data into insights in minutes.</div>", unsafe_allow_html=True)
     st.markdown("<div class='hero-subtitle'>Upload your CSV or Excel file and let DataPilot AI clean, analyze, visualize, and report your data automatically.</div>", unsafe_allow_html=True)
 
