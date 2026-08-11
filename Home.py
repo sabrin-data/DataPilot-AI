@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
 from utils.translations import init_language, t
 
 # ==========================================
@@ -11,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🌐 1. Initialize Language & Sidebar Selector (يحتوي على اللوجو الموحد)
+# 🌐 1. Initialize Language & Sidebar Selector
 init_language()
 
 # 🎨 2. Load Custom CSS from Assets
@@ -21,7 +23,7 @@ try:
 except FileNotFoundError:
     pass
 
-# 🔄 3. RTL Page Direction Handling (Dynamic based on selected language)
+# 🔄 3. RTL Page Direction Handling
 if st.session_state.get("lang") == "ar":
     st.markdown("""
         <style>
@@ -114,9 +116,9 @@ st.markdown("""
         div.stButton > button[kind="primary"] {
             background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
             color: white !important;
-            font-size: 17px !important;
+            font-size: 16px !important;
             font-weight: 700 !important;
-            padding: 10px 24px !important;
+            padding: 10px 20px !important;
             border-radius: 12px !important;
             border: none !important;
             box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
@@ -126,6 +128,25 @@ st.markdown("""
             transform: translateY(-2px) !important;
             box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5) !important;
             background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%) !important;
+        }
+
+        /* ✨ Secondary Button Styling for Demo Dataset */
+        div.stButton > button[kind="secondary"] {
+            background: #FFFFFF !important;
+            color: #4F46E5 !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            padding: 10px 20px !important;
+            border-radius: 12px !important;
+            border: 2px solid #C7D2FE !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1) !important;
+            transition: all 0.3s ease !important;
+        }
+        div.stButton > button[kind="secondary"]:hover {
+            transform: translateY(-2px) !important;
+            background: #EEF2FF !important;
+            border-color: #6366F1 !important;
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.2) !important;
         }
         
         /* General Card Base */
@@ -192,7 +213,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🚀 Home / Landing Page Interface (Value Proposition First)
+# 🚀 Home / Landing Page Interface
 # ==========================================
 head_col1, head_col2 = st.columns([1, 5.5], gap="medium")
 
@@ -203,7 +224,6 @@ with head_col1:
         pass
 
 with head_col2:
-    # 📌 إضافة شريط البراند المميز أعلا العنوان
     st.markdown("""
         <div class='brand-badge'>
             🚀 DataPilot AI — AI-Powered Data Analysis Platform
@@ -213,25 +233,51 @@ with head_col2:
     st.markdown("<div class='hero-title'>Turn your raw data into insights in minutes.</div>", unsafe_allow_html=True)
     st.markdown("<div class='hero-subtitle'>Upload your CSV or Excel file and let DataPilot AI clean, analyze, visualize, and report your data automatically.</div>", unsafe_allow_html=True)
 
-# 🚀 Action Button & Active File Banner
-col_btn, col_status = st.columns([1.5, 3])
+# 🚀 Action Buttons & Active File Banner
+btn_col1, btn_col2, col_status = st.columns([1.3, 1.3, 2.4], gap="small")
 
-with col_btn:
-    if st.button("🚀 Upload Your Dataset", type="primary", use_container_width=True):
+with btn_col1:
+    if st.button("🚀 Upload Dataset", type="primary", use_container_width=True):
         st.switch_page("pages/2_Upload.py")
+
+with btn_col2:
+    if st.button("✨ Try Demo Dataset", type="secondary", use_container_width=True):
+        # 📊 إنشاء مجموعة بيانات مبيعات متكاملة ومثالية للتجربة والتصوير
+        np.random.seed(42)
+        dates = pd.date_range(start="2026-01-01", periods=120, freq="D")
+        regions = ["North America", "Europe", "Asia-Pacific", "Latin America"]
+        products = ["DataPilot Pro", "DataPilot Enterprise", "DataPilot Starter"]
+        channels = ["Online", "Direct Sales", "Partner"]
+        
+        demo_df = pd.DataFrame({
+            "Transaction_ID": [f"TRX-{2000+i}" for i in range(120)],
+            "Date": dates,
+            "Region": np.random.choice(regions, 120),
+            "Product": np.random.choice(products, 120),
+            "Sales_Channel": np.random.choice(channels, 120),
+            "Sales_Amount": np.random.randint(250, 2500, 120),
+            "Units_Sold": np.random.randint(1, 20, 120),
+            "Customer_Rating": np.random.uniform(3.8, 5.0, 120).round(1)
+        })
+        
+        # حفظ البيانات في session_state لتتفاعل معها بقية الصفحات فوراً
+        st.session_state["df"] = demo_df
+        st.session_state["file_name"] = "Demo_Sales_Dataset.csv"
+        st.toast("⚡ Demo Dataset Loaded Successfully!", icon="🎉")
+        st.rerun()
 
 with col_status:
     if "df" in st.session_state and st.session_state["df"] is not None:
         file_name = st.session_state.get("file_name", "Dataset")
         df_shape = st.session_state["df"].shape
-        st.success(f"📁 **Active Dataset:** {file_name} ({df_shape[0]:,} rows × {df_shape[1]} columns)")
+        st.success(f"📁 **Active Dataset:** {file_name} ({df_shape[0]:,} rows × {df_shape[1]} cols)")
     else:
-        st.info("📂 **No Active Dataset:** Click above to upload a CSV or Excel file to start.")
+        st.info("📂 **No Active Dataset:** Upload CSV or click 'Try Demo Dataset'.")
 
 st.divider()
 
 # ==========================================
-# 🎨 Platform Capabilities & Data Pipeline Section (Modules Second)
+# 🎨 Platform Capabilities & Data Pipeline Section
 # ==========================================
 st.subheader("🎨 Explore Platform Modules & Pipeline")
 
