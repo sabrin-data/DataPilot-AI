@@ -4,6 +4,8 @@
 
 **DataPilot AI** is an enterprise-grade automated data sanitation, profiling, interactive Power BI-style analytics, and AI report generation engine built with **Python** and **Streamlit**.
 
+🌐 **Live Demo:** [DataPilot AI Web App](https://datapilot-analytics.streamlit.app/)
+
 ---
 
 ## 🚀 Key Features
@@ -23,13 +25,19 @@
 * **Frontend & UX:** Streamlit, Custom HTML5/CSS3 styling.
 * **Data Processing & Analytics:** Pandas, NumPy, Scikit-Learn.
 * **Visualization Engine:** Plotly Express & Plotly Graph Objects.
-* **Architecture:** Modular Python package design (`core/`, `utils/`, `templates/`, `models/`).
+* **Architecture:** Modular Python package design (`core/`, `utils/`, `pages/`, `assets/`).
 
 ---
 
-## ⚙️ Local Setup & Installation
+## 🌐 GitHub Repository & Live Deployment
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/YOUR_USERNAME/DataPilot_AI.git
-cd DataPilot_AI
+* **GitHub Repository:** [sabrin-data/DataPilot-AI](https://github.com/sabrin-data/DataPilot-AI)
+* **Live Application:** [datapilot-analytics.streamlit.app](https://datapilot-analytics.streamlit.app/)
+
+---
+
+## ⚙️ How to Use
+
+1. Visit the live web application link above.
+2. Navigate to the **Upload** page to load your CSV or Excel dataset.
+3. Explore automated cleaning, interactive dashboards, statistics, and AI Insights across the navigation menu.
