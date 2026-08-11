@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🌐 1. Initialize Language & Sidebar Selector
+# 🌐 1. Initialize Language & Sidebar Selector (يحتوي على اللوجو الموحد)
 init_language()
 
 # 🎨 2. Load Custom CSS from Assets
@@ -48,15 +48,6 @@ if st.session_state.get("lang") == "ar":
             .card-9 { border-right-color: #A855F7 !important; }
         </style>
     """, unsafe_allow_html=True)
-
-# 🖼️ 4. Sidebar Logo & Branding (DataPilot AI)
-with st.sidebar:
-    try:
-        st.image("assets/logo.png", use_container_width=True)
-    except Exception:
-        st.markdown("## 🧠 DataPilot AI")
-    st.markdown("<h3 style='text-align: center; color: #3B82F6; margin-top: -10px;'>DataPilot AI</h3>", unsafe_allow_html=True)
-    st.markdown("---")
 
 # Custom Styling with Colorful Modern UI & Sidebar Styling
 st.markdown("""
