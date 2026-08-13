@@ -81,27 +81,13 @@ if uploaded_file is not None:
         with st.spinner("Parsing dataset and verifying structural integrity..."):
             df, filename, used_encoding = load_dataset(uploaded_file)
 
-        # ------------------------------------------
-        # Free Tier Limit Logic (First 100 Rows Only)
-        # ------------------------------------------
-        total_raw_rows = len(df)
-        FREE_LIMIT = 100
-
-        if total_raw_rows > FREE_LIMIT:
-            df = df.head(FREE_LIMIT)
-            st.warning(
-                f"⚠️ **Free Plan Limit:** Your dataset contains **{total_raw_rows:,} rows**. "
-                f"The free version processes the **first {FREE_LIMIT} rows** only. "
-                f"Upgrade to Pro to analyze the full dataset!"
-            )
-        else:
-            st.success(f"🎉 Dataset **'{filename}'** successfully uploaded and loaded into active memory!")
-
         # Persist loaded dataframe into Session State
         st.session_state["df"] = df.copy()
         st.session_state["original_df"] = df.copy()
         st.session_state["file_name"] = filename
-        st.session_state["cleaning_log"] = []  # إعادة ضبط سجل التنظيف للملف الجديد
+        st.session_state["cleaning_log"] = []  # إعادة إعادة ضبط سجل التنظيف للملف الجديد
+
+        st.success(f"🎉 Dataset **'{filename}'** successfully uploaded and loaded into active memory!")
 
         # Metadata Quick Metrics
         m_col1, m_col2, m_col3, m_col4 = st.columns(4)
