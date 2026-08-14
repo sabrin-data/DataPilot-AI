@@ -154,14 +154,18 @@ with st.expander("🏷️ Module 4: Categorical Encoding & Feature Scaling"):
             encode_method = st.radio("Encoding Method", ["One-Hot Encoding (Dummy Variables)", "Ordinal / Label Encoding"])
             
             if st.button("🏷️ Apply Encoding"):
-                if "One-Hot" in encode_method:
-                    df = pd.get_dummies(df, columns=[encode_target], drop_first=True, dtype=int)
+                # فحص وتنبيه لمنع crash في الـ One-Hot Encoding للأعمدة ذات القيم الفريدة الكثيرة (مثل IDs)
+                if "One-Hot" in encode_method and df[encode_target].nunique() > 50:
+                    st.error(f"⚠️ Column `{encode_target}` has too many unique values ({df[encode_target].nunique()}). One-Hot Encoding this column is disabled to prevent application crash.")
                 else:
-                    df[f"{encode_target}_encoded"] = df[encode_target].astype("category").cat.codes
-                
-                st.session_state["df"] = df
-                st.success(f"🎉 Encoded `{encode_target}` successfully!")
-                st.rerun()
+                    if "One-Hot" in encode_method:
+                        df = pd.get_dummies(df, columns=[encode_target], drop_first=True, dtype=int)
+                    else:
+                        df[f"{encode_target}_encoded"] = df[encode_target].astype("category").cat.codes
+                    
+                    st.session_state["df"] = df
+                    st.success(f"🎉 Encoded `{encode_target}` successfully!")
+                    st.rerun()
         else:
             st.info("No categorical columns available for encoding.")
 
