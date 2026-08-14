@@ -134,12 +134,14 @@ else:
 st.divider()
 
 # ==========================================
-# 4. EXECUTIVE VISUAL BREAKDOWN
+# 4. EXECUTIVE VISUAL BREAKDOWN (معدل للتركيز على Category)
 # ==========================================
 st.markdown("### 📉 Executive Visual Breakdown")
 
-# اختيار أفضل أعمدة نصية ورقمية للرسم (استبعاد الـ IDs)
-chart_cat_cols = slicer_categorical_cols if slicer_categorical_cols else categorical_cols
+# منطق ذكي لاختيار العمود النصي الأنسب (تفضيل Category على Item لضمان وضوح الرسم)
+preferred_cat_cols = [c for c in slicer_categorical_cols if any(k in c.lower() for k in ['category', 'type', 'group', 'payment', 'location'])]
+main_chart_cat = preferred_cat_cols[0] if preferred_cat_cols else (slicer_categorical_cols[0] if slicer_categorical_cols else (categorical_cols[0] if categorical_cols else None))
+
 chart_num_cols = [c for c in numeric_cols if not any(k in c.lower() for k in ['year', 'month', 'day', 'id'])]
 if not chart_num_cols:
     chart_num_cols = numeric_cols
@@ -148,18 +150,18 @@ if not filtered_df.empty:
     col1, col2 = st.columns(2)
 
     with col1:
-        if chart_cat_cols and chart_num_cols:
-            avg_df = filtered_df.groupby(chart_cat_cols[0], as_index=False)[chart_num_cols[0]].mean()
+        if main_chart_cat and chart_num_cols:
+            avg_df = filtered_df.groupby(main_chart_cat, as_index=False)[chart_num_cols[0]].mean()
             
             fig1 = px.bar(
                 avg_df, 
-                x=chart_cat_cols[0], 
+                x=main_chart_cat, 
                 y=chart_num_cols[0], 
-                title=f"Average {chart_num_cols[0].replace('_', ' ')} by {chart_cat_cols[0].title()}",
-                color=chart_cat_cols[0]
+                title=f"Average {chart_num_cols[0].replace('_', ' ')} by {main_chart_cat.title()}",
+                color=main_chart_cat
             )
             fig1.update_layout(
-                xaxis_tickangle=-45,
+                xaxis_tickangle=-30,
                 showlegend=False,
                 margin=dict(l=20, r=20, t=40, b=80)
             )
@@ -168,23 +170,23 @@ if not filtered_df.empty:
             st.info("Bar Chart requires at least 1 Categorical & 1 Numeric column.")
 
     with col2:
-        if chart_cat_cols:
-            counts = filtered_df[chart_cat_cols[0]].value_counts().reset_index()
-            counts.columns = [chart_cat_cols[0], 'count']
+        if main_chart_cat:
+            counts = filtered_df[main_chart_cat].value_counts().reset_index()
+            counts.columns = [main_chart_cat, 'count']
             
             if len(counts) > 10:
                 top_10 = counts.iloc[:10]
                 others_count = counts.iloc[10:]['count'].sum()
-                others_df = pd.DataFrame([{chart_cat_cols[0]: 'Others', 'count': others_count}])
+                others_df = pd.DataFrame([{main_chart_cat: 'Others', 'count': others_count}])
                 counts_display = pd.concat([top_10, others_df], ignore_index=True)
             else:
                 counts_display = counts
 
             fig2 = px.pie(
                 counts_display, 
-                names=chart_cat_cols[0], 
+                names=main_chart_cat, 
                 values='count',
-                title=f"Distribution of {chart_cat_cols[0].title()}",
+                title=f"Distribution of {main_chart_cat.title()}",
                 hole=0.4
             )
             fig2.update_traces(textposition='inside', textinfo='percent+label')
@@ -199,7 +201,7 @@ if not filtered_df.empty:
             filtered_df, 
             x=chart_num_cols[0], 
             y=chart_num_cols[1], 
-            color=chart_cat_cols[0] if chart_cat_cols else None,
+            color=main_chart_cat if main_chart_cat else None,
             title=f"{chart_num_cols[0].replace('_', ' ')} vs {chart_num_cols[1].replace('_', ' ')} Analysis"
         )
         fig3.update_layout(margin=dict(l=20, r=20, t=40, b=40))
@@ -225,8 +227,8 @@ if user_query:
         if filtered_df.empty:
             st.error("The filtered dataset is currently empty. Please adjust your filters.")
         elif any(k in query_lower for k in ["highest", "best", "أعلى", "أفضل", "최고"]):
-            if chart_num_cols and chart_cat_cols:
-                grp = filtered_df.groupby(chart_cat_cols[0])[chart_num_cols[0]].mean()
+            if chart_num_cols and main_chart_cat:
+                grp = filtered_df.groupby(main_chart_cat)[chart_num_cols[0]].mean()
                 if not grp.empty:
                     top_row = grp.idxmax()
                     top_val = grp.max()
@@ -235,8 +237,8 @@ if user_query:
                 st.info("The highest values are concentrated in the top values of your numeric columns.")
                 
         elif any(k in query_lower for k in ["lowest", "drop", "انخفاض", "أقل", "최저"]):
-            if chart_num_cols and chart_cat_cols:
-                grp = filtered_df.groupby(chart_cat_cols[0])[chart_num_cols[0]].mean()
+            if chart_num_cols and main_chart_cat:
+                grp = filtered_df.groupby(main_chart_cat)[chart_num_cols[0]].mean()
                 if not grp.empty:
                     low_row = grp.idxmin()
                     low_val = grp.min()
@@ -245,4 +247,4 @@ if user_query:
                 st.warning("Noticeable drops occur at lower numeric thresholds.")
                 
         else:
-            st.info(f"📊 **Executive Insight for '{user_query}':**\nBased on current filters, your active dataset contains **{len(filtered_df):,} total records**. Primary distribution focuses on `{chart_cat_cols[0] if chart_cat_cols else 'selected columns'}`.")
+            st.info(f"📊 **Executive Insight for '{user_query}':**\nBased on current filters, your active dataset contains **{len(filtered_df):,} total records**. Primary distribution focuses on `{main_chart_cat if main_chart_cat else 'selected columns'}`.")
