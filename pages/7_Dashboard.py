@@ -68,7 +68,7 @@ else:
     st.sidebar.info("No categorical columns available for slicing.")
 
 # ==========================================
-# 3. TOP KPIs SECTION (منطق ذكي ومعدّل)
+# 3. TOP KPIs SECTION (منطق ذكي ومعدّل لمنع التكرار)
 # ==========================================
 st.markdown("### 📈 Key Performance Indicators (KPIs)")
 
@@ -83,7 +83,7 @@ if not filtered_df.empty:
             delta="Total Records"
         )
         
-    # 2. إجمالي المبيعات/الانفاق (أول عمود مالي أو رقمي رئيسي)
+    # 2. إجمالي المبيعات/الانفاق (أول عمود مالي)
     spend_cols = [c for c in numeric_cols if any(k in c.lower() for k in ['spent', 'total', 'revenue', 'price', 'amount'])]
     target_spend_col = spend_cols[0] if spend_cols else (numeric_cols[0] if numeric_cols else None)
     
@@ -99,9 +99,10 @@ if not filtered_df.empty:
         else:
             st.metric(label="Total Volume", value="N/A")
 
-    # 3. إجمالي الكميات (معدل ليقرأ تلقائياً من العمود الرقمي المتوفر)
-    qty_cols = [c for c in numeric_cols if any(k in c.lower() for k in ['qty', 'quantity', 'count', 'unit'])]
-    target_qty_col = qty_cols[0] if qty_cols else (numeric_cols[1] if len(numeric_cols) > 1 else None)
+    # 3. إجمالي الكميات أو عمود رقمي مختلف (منع التكرار مع الكرت الثاني)
+    qty_cols = [c for c in numeric_cols if any(k in c.lower() for k in ['qty', 'quantity', 'count', 'unit']) and c != target_spend_col]
+    other_num_cols = [c for c in numeric_cols if c != target_spend_col]
+    target_qty_col = qty_cols[0] if qty_cols else (other_num_cols[0] if other_num_cols else None)
     
     with kpi_cols[2]:
         if target_qty_col:
@@ -111,13 +112,6 @@ if not filtered_df.empty:
                 label=f"Total {target_qty_col.replace('_', ' ').title()}", 
                 value=f"{total_qty:,.1f}",
                 delta=f"Avg: {avg_qty:,.1f}"
-            )
-        elif len(numeric_cols) > 2:
-            alt_col = numeric_cols[2]
-            st.metric(
-                label=f"Total {alt_col.replace('_', ' ').title()}", 
-                value=f"{filtered_df[alt_col].sum():,.1f}",
-                delta="Sum Value"
             )
         else:
             st.metric(label="Data Status", value="100% Valid")
