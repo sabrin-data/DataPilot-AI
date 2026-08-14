@@ -44,9 +44,17 @@ numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
 st.sidebar.markdown("### 🎛️ Executive Slicers & Filters")
 filtered_df = df.copy()
 
-# فلترة تلقائية لأول 3 أعمدة نصية
-if categorical_cols:
-    for col in categorical_cols[:3]:
+# فلترة ذكية: استثناء أعمدة الـ ID من السلايسر التلقائي لتجنب تفريغ البيانات
+slicer_categorical_cols = [
+    col for col in categorical_cols 
+    if not any(id_kw in col.lower() for id_kw in ['id', 'code', 'index', 'txn'])
+]
+
+# إذا لم نجد أعمدة نصية عادية نستخدم الأحدث، بحد أقصى 3 أعمدة
+target_slicers = slicer_categorical_cols[:3] if slicer_categorical_cols else categorical_cols[:3]
+
+if target_slicers:
+    for col in target_slicers:
         unique_vals = df[col].dropna().unique().tolist()
         selected_vals = st.sidebar.multiselect(
             f"Filter by {col}", 
@@ -60,25 +68,67 @@ else:
     st.sidebar.info("No categorical columns available for slicing.")
 
 # ==========================================
-# 3. TOP KPIs SECTION
+# 3. TOP KPIs SECTION (منطق ذكي ومعدّل)
 # ==========================================
 st.markdown("### 📈 Key Performance Indicators (KPIs)")
 
-if numeric_cols and not filtered_df.empty:
-    kpi_count = min(len(numeric_cols), 4)
-    kpi_cols = st.columns(kpi_count)
+if not filtered_df.empty:
+    kpi_cols = st.columns(4)
     
-    for i, col_name in enumerate(numeric_cols[:kpi_count]):
-        with kpi_cols[i]:
-            total_val = filtered_df[col_name].sum()
-            avg_val = filtered_df[col_name].mean()
+    # 1. إجمالي عدد العمليات/الطلبيات
+    with kpi_cols[0]:
+        st.metric(
+            label="Total Transactions",
+            value=f"{len(filtered_df):,}",
+            delta="Total Records"
+        )
+        
+    # 2. إجمالي المبيعات/الانفاق (أول عمود مالي أو رقمي رئيسي)
+    spend_cols = [c for c in numeric_cols if any(k in c.lower() for k in ['spent', 'total', 'revenue', 'price', 'amount'])]
+    target_spend_col = spend_cols[0] if spend_cols else (numeric_cols[0] if numeric_cols else None)
+    
+    with kpi_cols[1]:
+        if target_spend_col:
+            total_val = filtered_df[target_spend_col].sum()
+            avg_val = filtered_df[target_spend_col].mean()
             st.metric(
-                label=f"Total {col_name.replace('_', ' ').title()}", 
+                label=f"Total {target_spend_col.replace('_', ' ').title()}", 
                 value=f"{total_val:,.1f}",
                 delta=f"Avg: {avg_val:,.1f}"
             )
+        else:
+            st.metric(label="Total Volume", value="N/A")
+
+    # 3. إجمالي الكميات
+    qty_cols = [c for c in numeric_cols if any(k in c.lower() for k in ['qty', 'quantity', 'count', 'unit'])]
+    target_qty_col = qty_cols[0] if qty_cols else (numeric_cols[1] if len(numeric_cols) > 1 else None)
+    
+    with kpi_cols[2]:
+        if target_qty_col and target_qty_col != target_spend_col:
+            total_qty = filtered_df[target_qty_col].sum()
+            avg_qty = filtered_df[target_qty_col].mean()
+            st.metric(
+                label=f"Total {target_qty_col.replace('_', ' ').title()}", 
+                value=f"{total_qty:,.1f}",
+                delta=f"Avg: {avg_qty:,.1f}"
+            )
+        else:
+            st.metric(label="Metric Status", value="Active")
+
+    # 4. متوسط قيمة العملية (Average Value)
+    with kpi_cols[3]:
+        if target_spend_col:
+            avg_order_val = filtered_df[target_spend_col].mean()
+            st.metric(
+                label="Avg Transaction Value",
+                value=f"{avg_order_val:,.1f}",
+                delta="Mean Revenue"
+            )
+        else:
+            st.metric(label="Data Health", value="100%")
+
 else:
-    st.info("No numeric data available to display KPIs.")
+    st.info("No data available to display KPIs based on current filters.")
 
 st.divider()
 
@@ -87,19 +137,25 @@ st.divider()
 # ==========================================
 st.markdown("### 📉 Executive Visual Breakdown")
 
+# اختيار أفضل أعمدة نصية ورقمية للرسم (استبعاد الـ IDs)
+chart_cat_cols = slicer_categorical_cols if slicer_categorical_cols else categorical_cols
+chart_num_cols = [c for c in numeric_cols if not any(k in c.lower() for k in ['year', 'month', 'day', 'id'])]
+if not chart_num_cols:
+    chart_num_cols = numeric_cols
+
 if not filtered_df.empty:
     col1, col2 = st.columns(2)
 
     with col1:
-        if categorical_cols and numeric_cols:
-            avg_df = filtered_df.groupby(categorical_cols[0], as_index=False)[numeric_cols[0]].mean()
+        if chart_cat_cols and chart_num_cols:
+            avg_df = filtered_df.groupby(chart_cat_cols[0], as_index=False)[chart_num_cols[0]].mean()
             
             fig1 = px.bar(
                 avg_df, 
-                x=categorical_cols[0], 
-                y=numeric_cols[0], 
-                title=f"Average {numeric_cols[0].replace('_', ' ')} by {categorical_cols[0].title()}",
-                color=categorical_cols[0]
+                x=chart_cat_cols[0], 
+                y=chart_num_cols[0], 
+                title=f"Average {chart_num_cols[0].replace('_', ' ')} by {chart_cat_cols[0].title()}",
+                color=chart_cat_cols[0]
             )
             fig1.update_layout(
                 xaxis_tickangle=-45,
@@ -111,23 +167,23 @@ if not filtered_df.empty:
             st.info("Bar Chart requires at least 1 Categorical & 1 Numeric column.")
 
     with col2:
-        if categorical_cols:
-            counts = filtered_df[categorical_cols[0]].value_counts().reset_index()
-            counts.columns = [categorical_cols[0], 'count']
+        if chart_cat_cols:
+            counts = filtered_df[chart_cat_cols[0]].value_counts().reset_index()
+            counts.columns = [chart_cat_cols[0], 'count']
             
             if len(counts) > 10:
                 top_10 = counts.iloc[:10]
                 others_count = counts.iloc[10:]['count'].sum()
-                others_df = pd.DataFrame([{categorical_cols[0]: 'Others', 'count': others_count}])
+                others_df = pd.DataFrame([{chart_cat_cols[0]: 'Others', 'count': others_count}])
                 counts_display = pd.concat([top_10, others_df], ignore_index=True)
             else:
                 counts_display = counts
 
             fig2 = px.pie(
                 counts_display, 
-                names=categorical_cols[0], 
+                names=chart_cat_cols[0], 
                 values='count',
-                title=f"Distribution of {categorical_cols[0].title()}",
+                title=f"Distribution of {chart_cat_cols[0].title()}",
                 hole=0.4
             )
             fig2.update_traces(textposition='inside', textinfo='percent+label')
@@ -137,13 +193,13 @@ if not filtered_df.empty:
             st.info("Pie Chart requires a Categorical column.")
 
     # Scatter Plot
-    if len(numeric_cols) >= 2:
+    if len(chart_num_cols) >= 2:
         fig3 = px.scatter(
             filtered_df, 
-            x=numeric_cols[0], 
-            y=numeric_cols[1], 
-            color=categorical_cols[0] if categorical_cols else None,
-            title=f"{numeric_cols[0].replace('_', ' ')} vs {numeric_cols[1].replace('_', ' ')} Analysis"
+            x=chart_num_cols[0], 
+            y=chart_num_cols[1], 
+            color=chart_cat_cols[0] if chart_cat_cols else None,
+            title=f"{chart_num_cols[0].replace('_', ' ')} vs {chart_num_cols[1].replace('_', ' ')} Analysis"
         )
         fig3.update_layout(margin=dict(l=20, r=20, t=40, b=40))
         st.plotly_chart(fig3, use_container_width=True)
@@ -168,24 +224,24 @@ if user_query:
         if filtered_df.empty:
             st.error("The filtered dataset is currently empty. Please adjust your filters.")
         elif any(k in query_lower for k in ["highest", "best", "أعلى", "أفضل", "최고"]):
-            if numeric_cols and categorical_cols:
-                grp = filtered_df.groupby(categorical_cols[0])[numeric_cols[0]].mean()
+            if chart_num_cols and chart_cat_cols:
+                grp = filtered_df.groupby(chart_cat_cols[0])[chart_num_cols[0]].mean()
                 if not grp.empty:
                     top_row = grp.idxmax()
                     top_val = grp.max()
-                    st.success(f"📌 **Analysis Result:** The highest average in `{numeric_cols[0]}` belongs to **{top_row}** with a value of **{top_val:,.2f}**.")
+                    st.success(f"📌 **Analysis Result:** The highest average in `{chart_num_cols[0]}` belongs to **{top_row}** with a value of **{top_val:,.2f}**.")
             else:
                 st.info("The highest values are concentrated in the top values of your numeric columns.")
                 
         elif any(k in query_lower for k in ["lowest", "drop", "انخفاض", "أقل", "최저"]):
-            if numeric_cols and categorical_cols:
-                grp = filtered_df.groupby(categorical_cols[0])[numeric_cols[0]].mean()
+            if chart_num_cols and chart_cat_cols:
+                grp = filtered_df.groupby(chart_cat_cols[0])[chart_num_cols[0]].mean()
                 if not grp.empty:
                     low_row = grp.idxmin()
                     low_val = grp.min()
-                    st.warning(f"📉 **Analysis Result:** The lowest value/drop in `{numeric_cols[0]}` is observed in **{low_row}** with an average of **{low_val:,.2f}**.")
+                    st.warning(f"📉 **Analysis Result:** The lowest value/drop in `{chart_num_cols[0]}` is observed in **{low_row}** with an average of **{low_val:,.2f}**.")
             else:
                 st.warning("Noticeable drops occur at lower numeric thresholds.")
                 
         else:
-            st.info(f"📊 **Executive Insight for '{user_query}':**\nBased on current filters, your active dataset contains **{len(filtered_df):,} total records**. Primary distribution focuses on `{categorical_cols[0] if categorical_cols else 'selected columns'}`.")
+            st.info(f"📊 **Executive Insight for '{user_query}':**\nBased on current filters, your active dataset contains **{len(filtered_df):,} total records**. Primary distribution focuses on `{chart_cat_cols[0] if chart_cat_cols else 'selected columns'}`.")
