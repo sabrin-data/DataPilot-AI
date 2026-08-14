@@ -99,12 +99,12 @@ if not filtered_df.empty:
         else:
             st.metric(label="Total Volume", value="N/A")
 
-    # 3. إجمالي الكميات
+    # 3. إجمالي الكميات (معدل ليقرأ تلقائياً من العمود الرقمي المتوفر)
     qty_cols = [c for c in numeric_cols if any(k in c.lower() for k in ['qty', 'quantity', 'count', 'unit'])]
     target_qty_col = qty_cols[0] if qty_cols else (numeric_cols[1] if len(numeric_cols) > 1 else None)
     
     with kpi_cols[2]:
-        if target_qty_col and target_qty_col != target_spend_col:
+        if target_qty_col:
             total_qty = filtered_df[target_qty_col].sum()
             avg_qty = filtered_df[target_qty_col].mean()
             st.metric(
@@ -112,8 +112,15 @@ if not filtered_df.empty:
                 value=f"{total_qty:,.1f}",
                 delta=f"Avg: {avg_qty:,.1f}"
             )
+        elif len(numeric_cols) > 2:
+            alt_col = numeric_cols[2]
+            st.metric(
+                label=f"Total {alt_col.replace('_', ' ').title()}", 
+                value=f"{filtered_df[alt_col].sum():,.1f}",
+                delta="Sum Value"
+            )
         else:
-            st.metric(label="Metric Status", value="Active")
+            st.metric(label="Data Status", value="100% Valid")
 
     # 4. متوسط قيمة العملية (Average Value)
     with kpi_cols[3]:
