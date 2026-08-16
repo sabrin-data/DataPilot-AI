@@ -2,8 +2,8 @@ name: Keep Streamlit Alive
 
 on:
   schedule:
-    # يعمل تلقائياً لإرسال زيارة للموقع تمنعه من النوم
-    - cron: '0 12 */2 * *'
+    # يعمل تلقائياً كل 7 ساعات
+    - cron: '0 */7 * * *'
   workflow_dispatch:
 
 jobs:
