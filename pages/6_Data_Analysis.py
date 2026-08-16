@@ -148,18 +148,23 @@ with st.expander("📈 Section 2: Multi-Variable Relationship Analysis", expande
 
     # 3. Correlation Matrix Heatmap
     with bi_tab3:
-        if len(num_cols) >= 2:
-            corr_matrix = df[num_cols].corr()
+        # تصفية الأعمدة الرقمية لضمان عدم وجود أنحراف معياري صفري (أعمدة ثابتة)
+        valid_corr_cols = [c for c in num_cols if df[c].std() > 0 and not df[c].isna().all()]
+        
+        if len(valid_corr_cols) >= 2:
+            corr_matrix = df[valid_corr_cols].corr()
             fig_corr = px.imshow(
                 corr_matrix, 
                 text_auto=".2f", 
                 aspect="auto", 
                 color_continuous_scale="RdBu_r",
+                zmin=-1,
+                zmax=1,
                 title="Full Numeric Attribute Correlation Heatmap"
             )
             st.plotly_chart(fig_corr, use_container_width=True)
         else:
-            st.info("At least two numerical attributes are required to calculate correlations.")
+            st.info("At least two non-constant numerical attributes are required to calculate correlations.")
 
 # ==========================================
 # 🧩 Section 3: Interactive GroupBy & Aggregations
@@ -196,9 +201,10 @@ with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
     st.subheader("💡 Key Statistical Insights & Correlation Findings")
     
     # 1. Correlation Analysis
-    if len(num_cols) >= 2:
+    valid_corr_cols = [c for c in num_cols if df[c].std() > 0 and not df[c].isna().all()]
+    if len(valid_corr_cols) >= 2:
         try:
-            corr = df[num_cols].corr().abs()
+            corr = df[valid_corr_cols].corr().abs()
             for c in corr.columns:
                 corr.loc[c, c] = 0.0
             
