@@ -43,7 +43,8 @@ st.divider()
 
 # Classify columns
 num_cols = df.select_dtypes(include=np.number).columns.tolist()
-cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+# يشمل الأعمدة النصية + الأعمدة الرقمية ذات التصنيفات المحدودة (أقل من 50 قيمة فريدة)
+cat_cols = [col for col in df.columns if df[col].dtype in ['object', 'category'] or df[col].nunique() < 50]
 dt_cols = df.select_dtypes(include=["datetime", "datetimetz"]).columns.tolist()
 
 # ==========================================
