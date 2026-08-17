@@ -73,7 +73,7 @@ with tab_ask:
     st.subheader("💬 Ask Anything About Your Dataset")
     st.caption("Query your data using plain language to get instant statistical answers and data breakdowns.")
     
-    user_query = st.text_input("Enter your query or prompt for AI Analyst:", placeholder="e.g. What is the average sales by region? Or show highest transaction value.")
+    user_query = st.text_input("Enter your query or prompt for AI Analyst:", placeholder="e.g. What are the key business insights and recommendations to increase sales?")
     
     if st.button("🤖 Process Query", type="primary", key="ask_btn"):
         if user_query.strip():
@@ -81,8 +81,33 @@ with tab_ask:
                 st.success("🎯 **AI Response:**")
                 st.markdown(f"Analyzed query: *\"{user_query}\"* against **{df.shape[0]:,}** records.")
                 
-                # Preview subset related to query
-                st.dataframe(df.head(10), use_container_width=True)
+                query_clean = user_query.lower().strip()
+                
+                # Check for strategic business query intent
+                if any(k in query_clean for k in ["insight", "recommend", "increase sale", "strategy", "summary", "advice", "growth", "business"]):
+                    # Smart calculations from active dataset
+                    top_cat = "N/A"
+                    if 'Category' in df.columns and 'Total Spent' in df.columns:
+                        top_cat = df.groupby('Category')['Total Spent'].sum().idxmax()
+                    elif cat_cols and 'Total Spent' in df.columns:
+                        top_cat = df.groupby(cat_cols[0])['Total Spent'].sum().idxmax()
+                    elif cat_cols and num_cols:
+                        top_cat = df.groupby(cat_cols[0])[num_cols[0]].sum().idxmax()
+
+                    avg_spent = df['Total Spent'].mean() if 'Total Spent' in df.columns else (df[num_cols[0]].mean() if num_cols else 0)
+
+                    st.markdown("### 💡 **Strategic Enterprise AI Recommendations**")
+                    st.info(f"""
+                    Based on an automated enterprise AI analysis of **{len(df):,} dataset records**:
+
+                    * 🎯 **Top Revenue Driver:** The **`{top_cat}`** category generates the highest overall sales volume. Capitalize on this demand by optimizing inventory and running targeted cross-sell campaigns.
+                    * 💳 **Average Basket Size:** The current mean transaction value across all categories is **`${avg_spent:.2f}`**. Implement bundle deals or threshold-based discounts to drive order values higher.
+                    * 🚀 **Growth Strategy:** Shift focus towards high-margin items in underperforming categories to balance portfolio profitability.
+                    * 🔍 **Deep Dive:** Navigate to the **Key Insights** and **Recommendations & ML** tabs above for complete model metrics and anomaly detections!
+                    """)
+                else:
+                    # Default Data Breakdown Preview for standard data queries
+                    st.dataframe(df.head(10), use_container_width=True)
         else:
             st.error("Please enter a valid query.")
 
@@ -116,13 +141,36 @@ with tab_insights:
     st.subheader("💡 Automated Key Insights & Correlation Analysis")
     st.caption("Discover patterns, statistical anomalies, and strong variable interactions.")
     
-    if len(num_cols) >= 2:
-        st.markdown("##### 🔗 Numeric Feature Correlation Matrix")
-        corr = df[num_cols].corr()
-        fig_corr = px.imshow(corr, text_auto=True, color_continuous_scale="RdBu_r", title="Correlation Heatmap")
+    # Filter core numeric attributes (exclude encoded/derived dummy variables)
+    base_corr_cols = [
+        col for col in num_cols
+        if not col.startswith(('Category_', 'Payment Method_', 'Payment_', 'Item_'))
+        and not col.endswith(('_minmax', '_scaled', '_log', '_Year', '_Month'))
+        and df[col].std() > 0
+    ]
+    
+    if len(base_corr_cols) >= 2:
+        st.markdown("##### 🔗 Core Numeric Feature Correlation Matrix")
+        corr = df[base_corr_cols].corr()
+        
+        fig_corr = px.imshow(
+            corr,
+            text_auto=".2f",
+            aspect="auto",
+            color_continuous_scale="RdBu_r",
+            zmin=-1,
+            zmax=1,
+            title="Core Numeric Correlation Heatmap"
+        )
+        
+        fig_corr.update_layout(
+            height=500,
+            margin=dict(l=20, r=20, t=50, b=20)
+        )
+        
         st.plotly_chart(fig_corr, use_container_width=True)
     else:
-        st.info("At least two numerical columns are required to draw correlation heatmaps.")
+        st.info("At least two core numerical columns are required to draw correlation heatmaps.")
 
 # ----------------------------------------------------
 # 📈 TAB 4: Business Insights
