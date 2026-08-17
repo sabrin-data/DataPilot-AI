@@ -149,11 +149,18 @@ with st.expander("📈 Section 2: Multi-Variable Relationship Analysis", expande
 
     # 3. Correlation Matrix Heatmap
     with bi_tab3:
-        # تصفية الأعمدة الرقمية لضمان عدم وجود أنحراف معياري صفري (أعمدة ثابتة)
-        valid_corr_cols = [c for c in num_cols if df[c].std() > 0 and not df[c].isna().all()]
+        # تصفية الأعمدة الرقمية الأساسية فقط واستبعاد الأعمدة المشرّحة أو المحولة
+        base_corr_cols = [
+            c for c in num_cols 
+            if not c.startswith('Category_') 
+            and not c.startswith('Payment Method_')
+            and not c.endswith(('_log', '_minmax', '_scaled', '_Year', '_Month'))
+            and df[c].std() > 0 
+            and not df[c].isna().all()
+        ]
         
-        if len(valid_corr_cols) >= 2:
-            corr_matrix = df[valid_corr_cols].corr()
+        if len(base_corr_cols) >= 2:
+            corr_matrix = df[base_corr_cols].corr()
             fig_corr = px.imshow(
                 corr_matrix, 
                 text_auto=".2f", 
@@ -161,11 +168,11 @@ with st.expander("📈 Section 2: Multi-Variable Relationship Analysis", expande
                 color_continuous_scale="RdBu_r",
                 zmin=-1,
                 zmax=1,
-                title="Full Numeric Attribute Correlation Heatmap"
+                title="Core Numeric Attribute Correlation Heatmap"
             )
             st.plotly_chart(fig_corr, use_container_width=True)
         else:
-            st.info("At least two non-constant numerical attributes are required to calculate correlations.")
+            st.info("At least two non-constant core numerical attributes are required to calculate correlations.")
 
 # ==========================================
 # 🧩 Section 3: Interactive GroupBy & Aggregations
@@ -176,22 +183,30 @@ with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder"
         with ag1:
             group_by_cols = st.multiselect("Group By Category(ies)", cat_cols, default=[cat_cols[0]])
         with ag2:
-            agg_num_cols = st.multiselect("Target Numeric Metrics", num_cols, default=[num_cols[0]])
+            # تصفية الأعمدة الرقمية لمنع اختيارات مكررة مع Group By
+            valid_agg_num_cols = [c for c in num_cols if c not in group_by_cols]
+            default_num = [valid_agg_num_cols[0]] if valid_agg_num_cols else []
+            agg_num_cols = st.multiselect("Target Numeric Metrics", valid_agg_num_cols, default=default_num)
         with ag3:
             agg_func = st.selectbox("Aggregation Function", ["mean", "sum", "count", "min", "max", "std"])
 
         if group_by_cols and agg_num_cols:
-            agg_result = df.groupby(group_by_cols)[agg_num_cols].agg(agg_func).reset_index()
-            st.markdown(f"##### **Aggregated Summary Table ({agg_func.upper()})**")
-            st.dataframe(agg_result, use_container_width=True)
-            
-            # Download Aggregated Result
-            st.download_button(
-                "⬇️ Download Aggregated Data (CSV)",
-                data=agg_result.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"aggregated_{agg_func}_summary.csv",
-                mime="text/csv"
-            )
+            try:
+                agg_result = df.groupby(group_by_cols)[agg_num_cols].agg(agg_func).reset_index()
+                st.markdown(f"##### **Aggregated Summary Table ({agg_func.upper()})**")
+                st.dataframe(agg_result, use_container_width=True)
+                
+                # Download Aggregated Result
+                st.download_button(
+                    "⬇️ Download Aggregated Data (CSV)",
+                    data=agg_result.to_csv(index=False).encode("utf-8-sig"),
+                    file_name=f"aggregated_{agg_func}_summary.csv",
+                    mime="text/csv"
+                )
+            except Exception:
+                st.error("⚠️ Please select different columns for Group By and Target Numeric Metrics.")
+        else:
+            st.warning("⚠️ Please select at least one Group By column and one Target Numeric metric.")
     else:
         st.info("Requires both categorical and numerical columns for GroupBy analysis.")
 
@@ -201,11 +216,19 @@ with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder"
 with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
     st.subheader("💡 Key Statistical Insights & Correlation Findings")
     
-    # 1. Correlation Analysis
-    valid_corr_cols = [c for c in num_cols if df[c].std() > 0 and not df[c].isna().all()]
-    if len(valid_corr_cols) >= 2:
+    # 1. Correlation Analysis (استبعاد الأعمدة المشتقة والمكررة)
+    base_corr_cols = [
+        c for c in num_cols 
+        if not c.startswith('Category_') 
+        and not c.startswith('Payment Method_')
+        and not c.endswith(('_log', '_minmax', '_scaled', '_Year', '_Month'))
+        and df[c].std() > 0 
+        and not df[c].isna().all()
+    ]
+    
+    if len(base_corr_cols) >= 2:
         try:
-            corr = df[valid_corr_cols].corr().abs()
+            corr = df[base_corr_cols].corr().abs()
             for c in corr.columns:
                 corr.loc[c, c] = 0.0
             
@@ -213,7 +236,7 @@ with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
                 max_corr_pair = corr.unstack().idxmax()
                 max_corr_val = corr.unstack().max()
                 
-                if pd.notna(max_corr_val) and max_corr_val > 0.6:
+                if pd.notna(max_corr_val) and max_corr_val > 0.4:
                     st.info(f"🔗 **Strong Correlation Detected:** `{max_corr_pair[0]}` and `{max_corr_pair[1]}` have a high correlation coefficient of **{max_corr_val:.2f}**.")
         except Exception:
             pass
