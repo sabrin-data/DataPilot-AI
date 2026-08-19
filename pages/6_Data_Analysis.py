@@ -24,7 +24,6 @@ try:
 except FileNotFoundError:
     pass
 
-# النصوص إنجليزية مباشرة لمنع ظهور الكلمات المفتاحية
 st.title("🔍 Exploratory Data Analysis (EDA) Studio")
 st.write("Interactive statistical analysis, dynamic visual relationship discovery, and automated data insights.")
 
@@ -41,10 +40,18 @@ file_name = st.session_state.get("file_name", "Dataset")
 st.info(f"📁 Active Dataset: **{file_name}** | Dimensions: **{df.shape[0]:,} rows × {df.shape[1]} columns**")
 st.divider()
 
-# Classify columns
+# ==========================================
+# Classify columns (Accurate & Robust Filtering)
+# ==========================================
 num_cols = df.select_dtypes(include=np.number).columns.tolist()
-# يشمل الأعمدة النصية + الأعمدة الرقمية ذات التصنيفات المحدودة (أقل من 50 قيمة فريدة)
-cat_cols = [col for col in df.columns if df[col].dtype in ['object', 'category'] or df[col].nunique() < 50]
+
+# ✅ التعديل الأدق: تشميل جميع الأعمدة النصية بدون تقييد العدد بـ 50، + الأعمدة الرقمية التصنيفية (أقل من 100 قيمة)
+cat_cols = [
+    col for col in df.columns 
+    if str(df[col].dtype) in ['object', 'category', 'string'] 
+    or df[col].nunique() < 100
+]
+
 dt_cols = df.select_dtypes(include=["datetime", "datetimetz"]).columns.tolist()
 
 # ==========================================
@@ -60,7 +67,6 @@ with st.expander("📊 Section 1: Single Variable Analysis (Univariate Analysis)
             with u_col1:
                 selected_num = st.selectbox("Select Numeric Variable", num_cols, key="uni_num")
                 
-                # Statistics Summary Box
                 st.markdown("##### **Statistical Snapshot**")
                 s_mean = df[selected_num].mean()
                 s_std = df[selected_num].std()
@@ -149,7 +155,6 @@ with st.expander("📈 Section 2: Multi-Variable Relationship Analysis", expande
 
     # 3. Correlation Matrix Heatmap
     with bi_tab3:
-        # تصفية الأعمدة الرقمية الأساسية فقط واستبعاد الأعمدة المشرّحة أو المحولة
         base_corr_cols = [
             c for c in num_cols 
             if not c.startswith('Category_') 
@@ -183,7 +188,6 @@ with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder"
         with ag1:
             group_by_cols = st.multiselect("Group By Category(ies)", cat_cols, default=[cat_cols[0]])
         with ag2:
-            # تصفية الأعمدة الرقمية لمنع اختيارات مكررة مع Group By
             valid_agg_num_cols = [c for c in num_cols if c not in group_by_cols]
             default_num = [valid_agg_num_cols[0]] if valid_agg_num_cols else []
             agg_num_cols = st.multiselect("Target Numeric Metrics", valid_agg_num_cols, default=default_num)
@@ -196,7 +200,6 @@ with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder"
                 st.markdown(f"##### **Aggregated Summary Table ({agg_func.upper()})**")
                 st.dataframe(agg_result, use_container_width=True)
                 
-                # Download Aggregated Result
                 st.download_button(
                     "⬇️ Download Aggregated Data (CSV)",
                     data=agg_result.to_csv(index=False).encode("utf-8-sig"),
@@ -216,7 +219,6 @@ with st.expander("🧩 Section 3: Custom Data Aggregation & Pivot Table Builder"
 with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
     st.subheader("💡 Key Statistical Insights & Correlation Findings")
     
-    # 1. Correlation Analysis (استبعاد الأعمدة المشتقة والمكررة)
     base_corr_cols = [
         c for c in num_cols 
         if not c.startswith('Category_') 
@@ -241,7 +243,6 @@ with st.expander("💡 Section 4: Automated AI EDA Insights", expanded=True):
         except Exception:
             pass
 
-    # 2. Skewness Analysis
     continuous_num_cols = [c for c in num_cols if df[c].nunique() > 2]
     
     skewed_cols = []
