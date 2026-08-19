@@ -102,7 +102,7 @@ def generate_html_report(dataframe, title, author, inc_summary, inc_charts, inc_
     if inc_logs and logs_list:
         logs_items = "".join([f"<li>{log}</li>" for log in logs_list])
         logs_html = f"<h3>Data Sanitation Audit Log</h3><ul>{logs_items}</ul>"
-        elif inc_logs:
+    elif inc_logs:
         logs_html = "<h3>Data Sanitation Audit Log</h3><p>No automated cleaning operations logged in this session.</p>"
 
     # 3. Missing Values HTML
