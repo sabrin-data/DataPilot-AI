@@ -55,7 +55,7 @@ with col_h2:
 st.divider()
 
 # ==========================================
-# 🤖 Phase 5 & 6: Smart AI Audit & Data Validation
+# 🤖 Smart AI Audit & Data Validation
 # ==========================================
 st.subheader("🤖 Smart Data Health Audit & AI Recommendations")
 
@@ -293,7 +293,7 @@ if st.button("🚀 Execute Comprehensive Cleaning", type="primary", use_containe
     
     if date_cols_process: cleaning_log.append(f"✔ Standardized date formats for `{date_cols_process}`.")
 
-    # --- Phase 7 Execution (Outliers IQR) ---
+    # --- Outliers IQR Execution ---
     if 'detect_outliers' in locals() and detect_outliers and outlier_cols:
         total_outliers = 0
         for o_col in outlier_cols:
@@ -313,7 +313,8 @@ if st.button("🚀 Execute Comprehensive Cleaning", type="primary", use_containe
                 elif outlier_action == "Remove Outlier Rows":
                     cleaned_df = cleaned_df[~outliers_mask]
                 elif outlier_action == "Replace Outliers with Median":
-                    cleaned_df.loc[outliers_mask, o_col] = cleaned_df[o_col].median()
+                    med_val = cleaned_df[o_col].median()
+                    cleaned_df.loc[outliers_mask, o_col] = med_val
 
         cleaning_log.append(f"✔ Handled **{total_outliers:,}** outlier points across `{outlier_cols}` using strategy: **{outlier_action}**.")
 
@@ -326,11 +327,11 @@ if st.button("🚀 Execute Comprehensive Cleaning", type="primary", use_containe
     st.rerun()
 
 # ==========================================
-# 📝 Phase 8: Cleaning Log & Export Output
+# 📋 Cleaning Log & Export Output
 # ==========================================
 if "cleaning_log" in st.session_state and st.session_state["cleaning_log"]:
     st.divider()
-    st.subheader("📋 Phase 8: Cleaning Log Audit Trail")
+    st.subheader("📋 Cleaning Log Audit Trail")
     
     for log_item in st.session_state["cleaning_log"]:
         st.markdown(log_item)
