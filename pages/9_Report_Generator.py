@@ -76,36 +76,41 @@ st.divider()
 # ==========================================
 # 📄 Section 3: HTML Report Generator Function
 # ==========================================
-def generate_html_report():
-    num_cols = df.select_dtypes(include=np.number).columns.tolist()
-    cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+def generate_html_report(dataframe, title, author, inc_summary, inc_charts, inc_logs, inc_missing, inc_sample, logs_list, lang):
+    num_cols = dataframe.select_dtypes(include=np.number).columns.tolist()
     
-    # تحديد اتجاه الصفحة واللغة في تقرير الـ HTML بمرونة
-    current_lang = st.session_state.get("lang", "en")
-    text_dir = "rtl" if current_lang == "ar" else "ltr"
-    align_dir = "right" if current_lang == "ar" else "left"
+    # 🔍 فلترة الأعمدة النصية: استبعاد المعرفات (IDs) والقيم الفريدة جداً لمنع اللون الأسود والمحتوى المكتظ
+    raw_cat_cols = dataframe.select_dtypes(include=["object", "category"]).columns.tolist()
+    cat_cols = [
+        col for col in raw_cat_cols 
+        if dataframe[col].nunique() < 30 and 'id' not in col.lower()
+    ]
+    
+    # تحديد اتجاه الصفحة واللغة
+    text_dir = "rtl" if lang == "ar" else "ltr"
+    align_dir = "right" if lang == "ar" else "left"
 
     # 1. Summary stats HTML
     summary_html = ""
-    if include_summary and num_cols:
-        desc_df = df[num_cols].describe().T.reset_index()
+    if inc_summary and num_cols:
+        desc_df = dataframe[num_cols].describe().T.reset_index()
         desc_df.rename(columns={"index": "Column Name"}, inplace=True)
         summary_html = f"<h3>Numerical Attributes Summary</h3>" + desc_df.to_html(index=False, classes="styled-table")
 
     # 2. Audit Logs HTML
     logs_html = ""
-    if include_logs and cleaning_log:
-        logs_items = "".join([f"<li>{log}</li>" for log in cleaning_log])
+    if inc_logs and logs_list:
+        logs_items = "".join([f"<li>{log}</li>" for log in logs_list])
         logs_html = f"<h3>Data Sanitation Audit Log</h3><ul>{logs_items}</ul>"
-    elif include_logs:
+        elif inc_logs:
         logs_html = "<h3>Data Sanitation Audit Log</h3><p>No automated cleaning operations logged in this session.</p>"
 
     # 3. Missing Values HTML
     missing_html = ""
-    if include_missing:
-        missing_df = df.isnull().sum().reset_index()
+    if inc_missing:
+        missing_df = dataframe.isnull().sum().reset_index()
         missing_df.columns = ["Column Name", "Missing Count"]
-        missing_df["Missing Percentage (%)"] = (missing_df["Missing Count"] / len(df) * 100).round(2)
+        missing_df["Missing Percentage (%)"] = (missing_df["Missing Count"] / len(dataframe) * 100).round(2)
         missing_df = missing_df[missing_df["Missing Count"] > 0]
         
         if not missing_df.empty:
@@ -115,24 +120,26 @@ def generate_html_report():
 
     # 4. Dashboard Charts HTML
     charts_html = ""
-    if include_charts:
+    if inc_charts:
         charts_html += "<h3>Executive Dashboard Visualizations</h3>"
         
-        # Chart 1: Bar Chart (فحص أمان لعدم الحدوث Index Error)
+        # Chart 1: Bar Chart لأعلى 10 تصنيفات فقط
         if len(cat_cols) > 0 and len(num_cols) > 0:
-            avg_df = df.groupby(cat_cols[0], as_index=False)[num_cols[0]].mean()
-            fig1 = px.bar(avg_df, x=cat_cols[0], y=num_cols[0], title=f"Average {num_cols[0]} by {cat_cols[0]}")
+            avg_df = dataframe.groupby(cat_cols[0], as_index=False)[num_cols[0]].mean().head(10)
+            fig1 = px.bar(avg_df, x=cat_cols[0], y=num_cols[0], title=f"Top {cat_cols[0]} by Avg {num_cols[0]}")
             charts_html += fig1.to_html(full_html=False, include_plotlyjs='cdn')
             
         # Chart 2: Pie Chart
         if len(cat_cols) > 0:
-            fig2 = px.pie(df, names=cat_cols[0], title=f"Distribution of {cat_cols[0]}")
+            top_cat_counts = dataframe[cat_cols[0]].value_counts().head(10).reset_index()
+            top_cat_counts.columns = [cat_cols[0], 'Count']
+            fig2 = px.pie(top_cat_counts, names=cat_cols[0], values='Count', title=f"Distribution of Top {cat_cols[0]}")
             charts_html += fig2.to_html(full_html=False, include_plotlyjs='cdn')
 
     # 5. Data Sample HTML
     sample_html = ""
-    if include_sample:
-        sample_html = "<h3>Dataset Preview (Top 10 Rows)</h3>" + df.head(10).to_html(index=False, classes="styled-table")
+    if inc_sample:
+        sample_html = "<h3>Dataset Preview (Top 10 Rows)</h3>" + dataframe.head(10).to_html(index=False, classes="styled-table")
 
     # Complete HTML Document
     html_content = f"""
@@ -140,7 +147,7 @@ def generate_html_report():
     <html dir="{text_dir}">
     <head>
         <meta charset="UTF-8">
-        <title>{report_title}</title>
+        <title>{title}</title>
         <style>
             body {{
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -217,13 +224,13 @@ def generate_html_report():
     </head>
     <body>
         <div class="header">
-            <h1>{report_title}</h1>
-            <p>Generated by <strong>{author_name}</strong> | Source File: <em>{file_name}</em></p>
+            <h1>{title}</h1>
+            <p>Generated by <strong>{author}</strong> | Source File: <em>{file_name}</em></p>
         </div>
 
         <div class="kpi-box">
-            <div class="kpi-card"><h4>Total Rows</h4><p>{len(df):,}</p></div>
-            <div class="kpi-card"><h4>Total Attributes</h4><p>{df.shape[1]}</p></div>
+            <div class="kpi-card"><h4>Total Rows</h4><p>{len(dataframe):,}</p></div>
+            <div class="kpi-card"><h4>Total Attributes</h4><p>{dataframe.shape[1]}</p></div>
             <div class="kpi-card"><h4>Numeric Attributes</h4><p>{len(num_cols)}</p></div>
             <div class="kpi-card"><h4>Categorical Attributes</h4><p>{len(cat_cols)}</p></div>
         </div>
@@ -242,14 +249,20 @@ def generate_html_report():
     """
     return html_content
 
+# توليد التقرير بالمتغيرات المحددة
+current_lang = st.session_state.get("lang", "en")
+html_report = generate_html_report(
+    df, report_title, author_name, 
+    include_summary, include_charts, include_logs, 
+    include_missing, include_sample, cleaning_log, current_lang
+)
+
 # ==========================================
 # 📥 Section 4: Export Options & Downloads
 # ==========================================
 st.subheader("📥 Export Reports & Cleaned Datasets")
 
 col_exp1, col_exp2, col_exp3 = st.columns(3)
-
-html_report = generate_html_report()
 
 with col_exp1:
     st.download_button(
