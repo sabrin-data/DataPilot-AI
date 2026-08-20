@@ -40,10 +40,10 @@ st.divider()
 
 # Separate data types
 num_cols = df.select_dtypes(include=np.number).columns.tolist()
-cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+cat_cols = df.select_dtypes(include=["object", "category", "string"]).columns.tolist()
 
 # ==========================================
-# 🧪 Module 1: Custom Advanced Multi-Column Formula (الأول والأشمل)
+# 🧪 Module 1: Custom Advanced Multi-Column Formula
 # ==========================================
 with st.expander("🧪 Module 1: Custom Advanced Formula Builder (Multi-Column)", expanded=True):
     st.markdown("Write dynamic arithmetic formulas using exact column names. Example: `(Quantity * Price_Per_Unit) - Discount`")
@@ -71,28 +71,27 @@ with st.expander("🧪 Module 1: Custom Advanced Formula Builder (Multi-Column)"
             st.error("⚠️ Column name already exists. Please enter a unique name.")
         else:
             try:
-                # حساب المعادلة بأمان باستخدام df.eval
                 df[new_custom_col_name] = df.eval(custom_formula)
                 st.session_state["df"] = df
                 st.success(f"🎉 Successfully created column `{new_custom_col_name}` using formula: `{custom_formula}`!")
                 st.rerun()
             except Exception as e:
-                st.error(f"❌ Error evaluating formula. Please verify column names and arithmetic operations. Details: {e}")
+                st.error(f"❌ Error evaluating formula. Details: {e}")
 
 # ==========================================
-# 🛠️ Module 2: Quick Two-Column Math Creator (A op B)
+# 🛠️ Module 2: Quick Two-Column Math Creator
 # ==========================================
 with st.expander("➕ Module 2: Quick Calculated Column (A op B)"):
     if len(num_cols) >= 2:
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            col_a = st.selectbox("Select First Column (A)", num_cols, key="math_a")
+            col_a = st.selectbox("Select First Column (A)", num_cols, key="math_col_a_key")
         with c2:
-            op = st.selectbox("Select Operation", ["Add (+)", "Subtract (-)", "Multiply (*)", "Divide (/)"], key="math_op")
+            op = st.selectbox("Select Operation", ["Add (+)", "Subtract (-)", "Multiply (*)", "Divide (/)"], key="math_op_key")
         with c3:
-            col_b = st.selectbox("Select Second Column (B)", num_cols, key="math_b")
+            col_b = st.selectbox("Select Second Column (B)", num_cols, key="math_col_b_key")
         with c4:
-            new_col_name = st.text_input("New Column Name", value=f"{col_a}_{op[0].lower()}")
+            new_col_name = st.text_input("New Column Name", value=f"{col_a}_{op[0].lower()}", key="math_new_col_key")
 
         if st.button("✨ Construct Calculated Feature", type="primary", key="btn_construct_a_b"):
             if new_col_name in df.columns:
@@ -114,19 +113,19 @@ with st.expander("➕ Module 2: Quick Calculated Column (A op B)"):
         st.info("At least two numeric columns are required for custom arithmetic feature construction.")
 
 # ==========================================
-# 📊 Module 3: Binning & Discretization (Numeric -> Categorical Groups)
+# 📊 Module 3: Binning & Discretization
 # ==========================================
 with st.expander("📦 Module 3: Feature Binning / Quantilization (Continuous to Categorical)"):
     if num_cols:
         b1, b2, b3 = st.columns(3)
         with b1:
-            bin_target = st.selectbox("Select Numeric Column to Bin", num_cols, key="bin_col")
+            bin_target = st.selectbox("Select Numeric Column to Bin", num_cols, key="bin_target_key")
         with b2:
-            num_bins = st.slider("Number of Bins / Groups", min_value=2, max_value=10, value=3)
+            num_bins = st.slider("Number of Bins / Groups", min_value=2, max_value=10, value=3, key="num_bins_slider_key")
         with b3:
-            bin_col_name = st.text_input("Binned Column Name", value=f"{bin_target}_Group")
+            bin_col_name = st.text_input("Binned Column Name", value=f"{bin_target}_Group", key="bin_col_name_input_key")
 
-        bin_labels_str = st.text_input("Custom Group Labels (Comma Separated - Optional)", placeholder="Low, Medium, High")
+        bin_labels_str = st.text_input("Custom Group Labels (Comma Separated - Optional)", placeholder="Low, Medium, High", key="bin_labels_input_key")
 
         if st.button("📦 Generate Binned Feature", key="btn_bin_feature"):
             try:
@@ -138,7 +137,6 @@ with st.expander("📦 Module 3: Feature Binning / Quantilization (Continuous to
                 else:
                     labels = [f"Group_{i+1}" for i in range(num_bins)]
 
-                # Utilizes qcut with fallback to cut for safe equal-interval binning
                 try:
                     df[bin_col_name] = pd.qcut(df[bin_target], q=num_bins, labels=labels, duplicates="drop")
                 except ValueError:
@@ -153,15 +151,15 @@ with st.expander("📦 Module 3: Feature Binning / Quantilization (Continuous to
         st.info("No numeric columns available for binning.")
 
 # ==========================================
-# 📐 Module 4: Mathematical Transformations (Log, Square Root)
+# 📐 Module 4: Mathematical Transformations
 # ==========================================
 with st.expander("📐 Module 4: Mathematical Transformations (Skew Reduction)"):
     if num_cols:
         t1, t2 = st.columns(2)
         with t1:
-            trans_col = st.selectbox("Select Column to Transform", num_cols, key="trans_col")
+            trans_col = st.selectbox("Select Column to Transform", num_cols, key="trans_col_key")
         with t2:
-            trans_type = st.selectbox("Select Transformation", ["Log Transformation (log1p)", "Square Root (sqrt)", "Absolute Value (abs)"])
+            trans_type = st.selectbox("Select Transformation", ["Log Transformation (log1p)", "Square Root (sqrt)", "Absolute Value (abs)"], key="trans_type_key")
 
         if st.button("📐 Apply Transformation", key="btn_apply_transform"):
             trans_name = f"{trans_col}_{trans_type.split()[0].lower()}"
@@ -187,12 +185,12 @@ with st.expander("🏷️ Module 5: Categorical Encoding & Feature Scaling"):
     with e1:
         st.markdown("##### **Categorical Encoding**")
         if cat_cols:
-            encode_target = st.selectbox("Select Categorical Column", cat_cols, key="enc_target")
-            encode_method = st.radio("Encoding Method", ["One-Hot Encoding (Dummy Variables)", "Ordinal / Label Encoding"])
+            encode_target = st.selectbox("Select Categorical Column", cat_cols, key="encode_target_col_key")
+            encode_method = st.radio("Encoding Method", ["One-Hot Encoding (Dummy Variables)", "Ordinal / Label Encoding"], key="encode_method_radio_key")
             
             if st.button("🏷️ Apply Encoding", key="btn_apply_encode"):
                 if "One-Hot" in encode_method and df[encode_target].nunique() > 50:
-                    st.error(f"⚠️ Column `{encode_target}` has too many unique values ({df[encode_target].nunique()}). One-Hot Encoding this column is disabled to prevent application crash.")
+                    st.error(f"⚠️ Column `{encode_target}` has too many unique values ({df[encode_target].nunique()}). One-Hot Encoding disabled.")
                 else:
                     if "One-Hot" in encode_method:
                         df = pd.get_dummies(df, columns=[encode_target], drop_first=True, dtype=int)
@@ -208,8 +206,8 @@ with st.expander("🏷️ Module 5: Categorical Encoding & Feature Scaling"):
     with e2:
         st.markdown("##### **Feature Scaling**")
         if num_cols:
-            scale_target = st.multiselect("Select Numeric Columns to Scale", num_cols, key="scale_target")
-            scale_method = st.radio("Scaling Strategy", ["MinMax Scaling (0 to 1)", "Standardization (Z-Score)"])
+            scale_target = st.multiselect("Select Numeric Columns to Scale", num_cols, key="scale_target_cols_key")
+            scale_method = st.radio("Scaling Strategy", ["MinMax Scaling (0 to 1)", "Standardization (Z-Score)"], key="scale_method_radio_key")
 
             if st.button("⚖️ Apply Scaling", key="btn_apply_scale"):
                 if scale_target:
