@@ -95,49 +95,51 @@ st.subheader("⚙️ Select Sanitation Rules")
 with st.expander("🧹 Phase 1: Structural & Missing Values Handling", expanded=True):
     col_p1_1, col_p1_2 = st.columns(2)
     with col_p1_1:
-        drop_dup_rows = st.checkbox("Remove Duplicate Rows", value=True)
-        drop_dup_cols = st.checkbox("Remove Duplicate Columns")
-        drop_empty_rows = st.checkbox("Drop Completely Empty Rows", value=True)
-        drop_empty_cols = st.checkbox("Drop Completely Empty Columns", value=True)
+        drop_dup_rows = st.checkbox("Remove Duplicate Rows", value=True, key="chk_drop_dup_rows")
+        drop_dup_cols = st.checkbox("Remove Duplicate Columns", key="chk_drop_dup_cols")
+        drop_empty_rows = st.checkbox("Drop Completely Empty Rows", value=True, key="chk_drop_empty_rows")
+        drop_empty_cols = st.checkbox("Drop Completely Empty Columns", value=True, key="chk_drop_empty_cols")
     with col_p1_2:
         fill_num_method = st.selectbox(
             "Numeric Missing Strategy",
-            ["Do Nothing", "Fill with Mean", "Fill with Median", "Fill with 0", "Drop Rows with Missing"]
+            ["Do Nothing", "Fill with Mean", "Fill with Median", "Fill with 0", "Drop Rows with Missing"],
+            key="sel_fill_num_method"
         )
         fill_cat_method = st.selectbox(
             "Categorical Missing Strategy",
-            ["Do Nothing", "Fill with Mode (Most Frequent)", "Fill with 'Unknown'", "Drop Rows with Missing"]
+            ["Do Nothing", "Fill with Mode (Most Frequent)", "Fill with 'Unknown'", "Drop Rows with Missing"],
+            key="sel_fill_cat_method"
         )
 
 # --- Phase 2: Text Standardization ---
 with st.expander("🔤 Phase 2: Text Sanitation & Value Standardization"):
     col_p2_1, col_p2_2 = st.columns(2)
     with col_p2_1:
-        strip_spaces = st.checkbox("Remove Leading & Trailing Spaces", value=True)
-        remove_extra_spaces = st.checkbox("Normalize Multiple Internal Whitespaces", value=True)
-        case_transform = st.selectbox("Text Case Transformation", ["Do Nothing", "UPPERCASE", "lowercase", "Title Case"])
+        strip_spaces = st.checkbox("Remove Leading & Trailing Spaces", value=True, key="chk_strip_spaces")
+        remove_extra_spaces = st.checkbox("Normalize Multiple Internal Whitespaces", value=True, key="chk_remove_extra_spaces")
+        case_transform = st.selectbox("Text Case Transformation", ["Do Nothing", "UPPERCASE", "lowercase", "Title Case"], key="sel_case_transform")
     with col_p2_2:
-        standardize_common = st.checkbox("Standardize Equivalent Values", value=True, help="Unifies variations like 'm/male/MALE' -> 'Male', 'y/yes/YES' -> 'Yes', 'USA/U.S.A' -> 'United States'")
-        text_cols_selected = st.multiselect("Apply to Specific Text Columns (Leave empty for ALL)", text_cols)
+        standardize_common = st.checkbox("Standardize Equivalent Values", value=True, help="Unifies variations like 'm/male/MALE' -> 'Male', 'y/yes/YES' -> 'Yes', 'USA/U.S.A' -> 'United States'", key="chk_standardize_common")
+        text_cols_selected = st.multiselect("Apply to Specific Text Columns (Leave empty for ALL)", text_cols, key="ms_text_cols_selected")
 
 # --- Phase 3: Numeric Sanitation ---
 with st.expander("🔢 Phase 3: Numeric Sanitation (Currencies, Symbols & Percentages)"):
     col_p3_1, col_p3_2 = st.columns(2)
     with col_p3_1:
-        clean_currency_symbols = st.checkbox("Remove Currency Symbols ($, €, ₪, £, etc.) & Commas")
-        clean_percentages = st.checkbox("Convert Percentage Strings ('12%') to Decimal (0.12)")
+        clean_currency_symbols = st.checkbox("Remove Currency Symbols ($, €, ₪, £, etc.) & Commas", key="chk_clean_currency_symbols")
+        clean_percentages = st.checkbox("Convert Percentage Strings ('12%') to Decimal (0.12)", key="chk_clean_percentages")
     with col_p3_2:
-        remove_negatives = st.checkbox("Handle Negative Values (Replace with NaN)")
-        auto_convert_num_str = st.checkbox("Auto-Convert Numeric Strings to Float/Integer", value=True)
+        remove_negatives = st.checkbox("Handle Negative Values (Replace with NaN)", key="chk_remove_negatives")
+        auto_convert_num_str = st.checkbox("Auto-Convert Numeric Strings to Float/Integer", value=True, key="chk_auto_convert_num_str")
 
 # --- Phase 4: Date Standardization ---
 with st.expander("📅 Phase 4: Date Parsing & Feature Extraction"):
     col_p4_1, col_p4_2 = st.columns(2)
     with col_p4_1:
-        auto_parse_dates = st.checkbox("Auto-Detect and Convert Date Formats")
-        date_target_cols = st.multiselect("Select Target Date Columns", df.columns.tolist())
+        auto_parse_dates = st.checkbox("Auto-Detect and Convert Date Formats", key="chk_auto_parse_dates")
+        date_target_cols = st.multiselect("Select Target Date Columns", df.columns.tolist(), key="ms_date_target_cols")
     with col_p4_2:
-        extract_date_parts = st.checkbox("Extract Date Components (Year, Month, Day, Day Name)")
+        extract_date_parts = st.checkbox("Extract Date Components (Year, Month, Day, Day Name)", key="chk_extract_date_parts")
 
 # --- Phase 5: Outlier Management ---
 with st.expander("📊 Phase 5: Outlier Detection & Treatment (IQR Method)"):
@@ -145,12 +147,13 @@ with st.expander("📊 Phase 5: Outlier Detection & Treatment (IQR Method)"):
     if num_cols:
         col_p7_1, col_p7_2 = st.columns(2)
         with col_p7_1:
-            detect_outliers = st.checkbox("Enable Outlier Detection & Treatment")
-            outlier_cols = st.multiselect("Select Columns for Outlier Treatment", num_cols, default=num_cols[:2] if len(num_cols)>=2 else num_cols)
+            detect_outliers = st.checkbox("Enable Outlier Detection & Treatment", key="chk_detect_outliers")
+            outlier_cols = st.multiselect("Select Columns for Outlier Treatment", num_cols, default=num_cols[:2] if len(num_cols)>=2 else num_cols, key="ms_outlier_cols")
         with col_p7_2:
             outlier_action = st.selectbox(
                 "Outlier Action",
-                ["Cap Outliers (Winsorize to IQR Boundaries)", "Remove Outlier Rows", "Replace Outliers with Median"]
+                ["Cap Outliers (Winsorize to IQR Boundaries)", "Remove Outlier Rows", "Replace Outliers with Median"],
+                key="sel_outlier_action"
             )
     else:
         st.info("No numerical attributes available for outlier analysis.")
