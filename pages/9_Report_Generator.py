@@ -79,7 +79,7 @@ st.divider()
 def generate_html_report(dataframe, title, author, inc_summary, inc_charts, inc_logs, inc_missing, inc_sample, logs_list, lang):
     num_cols = dataframe.select_dtypes(include=np.number).columns.tolist()
     
-    # 🔍 فلترة الأعمدة النصية: استبعاد المعرفات (IDs) والقيم الفريدة جداً لمنع اللون الأسود والمحتوى المكتظ
+    # 🔍 فلترة الأعمدة النصية
     raw_cat_cols = dataframe.select_dtypes(include=["object", "category"]).columns.tolist()
     cat_cols = [
         col for col in raw_cat_cols 
@@ -123,17 +123,43 @@ def generate_html_report(dataframe, title, author, inc_summary, inc_charts, inc_
     if inc_charts:
         charts_html += "<h3>Executive Dashboard Visualizations</h3>"
         
-        # Chart 1: Bar Chart لأعلى 10 تصنيفات فقط
+        # لوحة ألوان احترافية متنوعة
+        color_palette = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4']
+
+        # Chart 1: Bar Chart
         if len(cat_cols) > 0 and len(num_cols) > 0:
             avg_df = dataframe.groupby(cat_cols[0], as_index=False)[num_cols[0]].mean().head(10)
-            fig1 = px.bar(avg_df, x=cat_cols[0], y=num_cols[0], title=f"Top {cat_cols[0]} by Avg {num_cols[0]}")
+            fig1 = px.bar(
+                avg_df, 
+                x=cat_cols[0], 
+                y=num_cols[0], 
+                title=f"Top {cat_cols[0]} by Avg {num_cols[0]}",
+                template="plotly_white",
+                color_discrete_sequence=['#4F46E5']  # لون أزرق احترافي بدلاً من الأسود
+            )
+            fig1.update_traces(marker_color='#4F46E5')
+            fig1.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
             charts_html += fig1.to_html(full_html=False, include_plotlyjs='cdn')
             
         # Chart 2: Pie Chart
         if len(cat_cols) > 0:
             top_cat_counts = dataframe[cat_cols[0]].value_counts().head(10).reset_index()
             top_cat_counts.columns = [cat_cols[0], 'Count']
-            fig2 = px.pie(top_cat_counts, names=cat_cols[0], values='Count', title=f"Distribution of Top {cat_cols[0]}")
+            fig2 = px.pie(
+                top_cat_counts, 
+                names=cat_cols[0], 
+                values='Count', 
+                title=f"Distribution of Top {cat_cols[0]}",
+                template="plotly_white",
+                color_discrete_sequence=color_palette  # ألوان زاهية ومتعددة للقطاعات
+            )
+            fig2.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
             charts_html += fig2.to_html(full_html=False, include_plotlyjs='cdn')
 
     # 5. Data Sample HTML
