@@ -43,9 +43,46 @@ num_cols = df.select_dtypes(include=np.number).columns.tolist()
 cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
 # ==========================================
-# 🛠️ Module 1: Custom Math Column Creator
+# 🧪 Module 1: Custom Advanced Multi-Column Formula (الأول والأشمل)
 # ==========================================
-with st.expander("➕ Module 1: Create Custom Calculated Column (A op B)", expanded=True):
+with st.expander("🧪 Module 1: Custom Advanced Formula Builder (Multi-Column)", expanded=True):
+    st.markdown("Write dynamic arithmetic formulas using exact column names. Example: `(Quantity * Price_Per_Unit) - Discount`")
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        custom_formula = st.text_input(
+            "Enter Formula Expression:", 
+            placeholder="e.g. Quantity * Price_Per_Unit",
+            key="custom_formula_expr"
+        )
+    with col2:
+        new_custom_col_name = st.text_input(
+            "New Column Name:", 
+            value="Custom_Feature",
+            key="custom_formula_col_name"
+        )
+        
+    st.caption(f"📌 **Available Numeric Columns:** `{', '.join(num_cols)}`")
+
+    if st.button("⚡ Apply Advanced Formula", type="primary", key="btn_apply_formula"):
+        if not custom_formula.strip():
+            st.warning("Please enter a valid formula expression.")
+        elif new_custom_col_name in df.columns:
+            st.error("⚠️ Column name already exists. Please enter a unique name.")
+        else:
+            try:
+                # حساب المعادلة بأمان باستخدام df.eval
+                df[new_custom_col_name] = df.eval(custom_formula)
+                st.session_state["df"] = df
+                st.success(f"🎉 Successfully created column `{new_custom_col_name}` using formula: `{custom_formula}`!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error evaluating formula. Please verify column names and arithmetic operations. Details: {e}")
+
+# ==========================================
+# 🛠️ Module 2: Quick Two-Column Math Creator (A op B)
+# ==========================================
+with st.expander("➕ Module 2: Quick Calculated Column (A op B)"):
     if len(num_cols) >= 2:
         c1, c2, c3, c4 = st.columns(4)
         with c1:
@@ -57,7 +94,7 @@ with st.expander("➕ Module 1: Create Custom Calculated Column (A op B)", expan
         with c4:
             new_col_name = st.text_input("New Column Name", value=f"{col_a}_{op[0].lower()}")
 
-        if st.button("✨ Construct Calculated Feature", type="primary"):
+        if st.button("✨ Construct Calculated Feature", type="primary", key="btn_construct_a_b"):
             if new_col_name in df.columns:
                 st.error("⚠️ Column name already exists. Please enter a unique name.")
             else:
@@ -77,9 +114,9 @@ with st.expander("➕ Module 1: Create Custom Calculated Column (A op B)", expan
         st.info("At least two numeric columns are required for custom arithmetic feature construction.")
 
 # ==========================================
-# 📊 Module 2: Binning & Discretization (Numeric -> Categorical Groups)
+# 📊 Module 3: Binning & Discretization (Numeric -> Categorical Groups)
 # ==========================================
-with st.expander("📦 Module 2: Feature Binning / Quantilization (Continuous to Categorical)"):
+with st.expander("📦 Module 3: Feature Binning / Quantilization (Continuous to Categorical)"):
     if num_cols:
         b1, b2, b3 = st.columns(3)
         with b1:
@@ -91,7 +128,7 @@ with st.expander("📦 Module 2: Feature Binning / Quantilization (Continuous to
 
         bin_labels_str = st.text_input("Custom Group Labels (Comma Separated - Optional)", placeholder="Low, Medium, High")
 
-        if st.button("📦 Generate Binned Feature"):
+        if st.button("📦 Generate Binned Feature", key="btn_bin_feature"):
             try:
                 if bin_labels_str.strip():
                     labels = [l.strip() for l in bin_labels_str.split(",")]
@@ -116,9 +153,9 @@ with st.expander("📦 Module 2: Feature Binning / Quantilization (Continuous to
         st.info("No numeric columns available for binning.")
 
 # ==========================================
-# 📐 Module 3: Mathematical Transformations (Log, Square Root)
+# 📐 Module 4: Mathematical Transformations (Log, Square Root)
 # ==========================================
-with st.expander("📐 Module 3: Mathematical Transformations (Skew Reduction)"):
+with st.expander("📐 Module 4: Mathematical Transformations (Skew Reduction)"):
     if num_cols:
         t1, t2 = st.columns(2)
         with t1:
@@ -126,7 +163,7 @@ with st.expander("📐 Module 3: Mathematical Transformations (Skew Reduction)")
         with t2:
             trans_type = st.selectbox("Select Transformation", ["Log Transformation (log1p)", "Square Root (sqrt)", "Absolute Value (abs)"])
 
-        if st.button("📐 Apply Transformation"):
+        if st.button("📐 Apply Transformation", key="btn_apply_transform"):
             trans_name = f"{trans_col}_{trans_type.split()[0].lower()}"
             if "Log" in trans_type:
                 df[trans_name] = np.log1p(np.maximum(0, df[trans_col]))
@@ -142,9 +179,9 @@ with st.expander("📐 Module 3: Mathematical Transformations (Skew Reduction)")
         st.info("No numeric columns available for mathematical transformations.")
 
 # ==========================================
-# 🏷️ Module 4: Categorical Encoding & Feature Scaling
+# 🏷️ Module 5: Categorical Encoding & Feature Scaling
 # ==========================================
-with st.expander("🏷️ Module 4: Categorical Encoding & Feature Scaling"):
+with st.expander("🏷️ Module 5: Categorical Encoding & Feature Scaling"):
     e1, e2 = st.columns(2)
     
     with e1:
@@ -153,8 +190,7 @@ with st.expander("🏷️ Module 4: Categorical Encoding & Feature Scaling"):
             encode_target = st.selectbox("Select Categorical Column", cat_cols, key="enc_target")
             encode_method = st.radio("Encoding Method", ["One-Hot Encoding (Dummy Variables)", "Ordinal / Label Encoding"])
             
-            if st.button("🏷️ Apply Encoding"):
-                # فحص وتنبيه لمنع crash في الـ One-Hot Encoding للأعمدة ذات القيم الفريدة الكثيرة (مثل IDs)
+            if st.button("🏷️ Apply Encoding", key="btn_apply_encode"):
                 if "One-Hot" in encode_method and df[encode_target].nunique() > 50:
                     st.error(f"⚠️ Column `{encode_target}` has too many unique values ({df[encode_target].nunique()}). One-Hot Encoding this column is disabled to prevent application crash.")
                 else:
@@ -175,7 +211,7 @@ with st.expander("🏷️ Module 4: Categorical Encoding & Feature Scaling"):
             scale_target = st.multiselect("Select Numeric Columns to Scale", num_cols, key="scale_target")
             scale_method = st.radio("Scaling Strategy", ["MinMax Scaling (0 to 1)", "Standardization (Z-Score)"])
 
-            if st.button("⚖️ Apply Scaling"):
+            if st.button("⚖️ Apply Scaling", key="btn_apply_scale"):
                 if scale_target:
                     for col in scale_target:
                         if "MinMax" in scale_method:
@@ -206,5 +242,5 @@ st.dataframe(df.head(10), use_container_width=True)
 # Transition button
 col_b1, col_b2, col_b3 = st.columns([1, 2, 1])
 with col_b2:
-    if st.button("Proceed to Exploratory Data Analysis (EDA) ➔", type="primary", use_container_width=True):
+    if st.button("Proceed to Exploratory Data Analysis (EDA) ➔", type="primary", use_container_width=True, key="btn_proceed_eda"):
         st.switch_page("pages/6_Data_Analysis.py")
