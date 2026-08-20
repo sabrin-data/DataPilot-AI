@@ -73,10 +73,17 @@ with tab_ask:
     st.subheader("💬 Ask Anything About Your Dataset")
     st.caption("Query your data using plain language to get instant statistical answers and data breakdowns.")
     
-    user_query = st.text_input("Enter your query or prompt for AI Analyst:", placeholder="e.g. What are the key business insights and recommendations to increase sales?")
+    # ربط مربع النص بـ key دائم لحفظه في الجلسة عند الرجوع
+    user_query = st.text_input(
+        "Enter your query or prompt for AI Analyst:",
+        placeholder="e.g. What are the key business insights and recommendations to increase sales?",
+        key="ai_analyst_user_query"
+    )
     
     if st.button("🤖 Process Query", type="primary", key="ask_btn"):
         if user_query.strip():
+            # حفظ استجابة الاستعلام في session_state حتى لا تضيع مع الرندر
+            st.session_state["last_processed_query"] = user_query
             with st.spinner("AI Analyst is analyzing dataset structure..."):
                 st.success("🎯 **AI Response:**")
                 st.markdown(f"Analyzed query: *\"{user_query}\"* against **{df.shape[0]:,}** records.")
@@ -232,7 +239,7 @@ with tab_ml:
         available_features = [c for c in all_cols if c != target_var]
         selected_features = st.multiselect("Select Feature Predictors (X)", available_features, default=available_features, key="features_select")
 
-        if st.button("🚀 Train Machine Learning Model", type="primary", use_container_width=True):
+        if st.button("🚀 Train Machine Learning Model", type="primary", use_container_width=True, key="train_ml_btn"):
             if not selected_features:
                 st.error("Please select at least one feature for prediction.")
             else:
@@ -348,7 +355,7 @@ with tab_ml:
             anom_cols = st.multiselect("Select Attributes for Scanning", num_cols, default=num_cols[:min(4, len(num_cols))], key="anom_cols_select")
             contamination_rate = st.slider("Expected Contamination Rate (%)", min_value=1, max_value=15, value=5, key="contam_slider") / 100.0
 
-            if st.button("🔍 Run Anomaly Detection", type="primary"):
+            if st.button("🔍 Run Anomaly Detection", type="primary", key="run_anom_btn"):
                 anom_df = df[anom_cols].dropna().copy()
                 if len(anom_df) > 0:
                     iso_model = IsolationForest(contamination=contamination_rate, random_state=42)
@@ -378,7 +385,7 @@ with tab_report:
     st.caption("Compile AI findings and predictions into printable documentation.")
     
     st.success("✅ Dataset and AI metrics ready for compilation.")
-    if st.button("📄 Generate & Export Executive Summary", type="primary", use_container_width=True):
+    if st.button("📄 Generate & Export Executive Summary", type="primary", use_container_width=True, key="export_report_btn"):
         st.switch_page("pages/8_Executive_Report.py" if "pages/8_Executive_Report.py" in str(st.session_state) else "pages/9_Report_Generator.py")
 
 st.divider()
@@ -386,5 +393,5 @@ st.divider()
 # Transition Button
 col_b1, col_b2, col_b3 = st.columns([1, 2, 1])
 with col_b2:
-    if st.button("Proceed to Executive Report Generator ➔", type="primary", use_container_width=True):
+    if st.button("Proceed to Executive Report Generator ➔", type="primary", use_container_width=True, key="proceed_report_btn"):
         st.switch_page("pages/8_Executive_Report.py" if "pages/8_Executive_Report.py" in str(st.session_state) else "pages/9_Report_Generator.py")
